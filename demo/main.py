@@ -51,8 +51,10 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
 
 
 def main():
-    """Start the interactive Anthropic-backed chat demo."""
-    model = anthropic_model.AnthropicModel(anthropic.Anthropic())
+    """Start the interactive chat demo."""
+    model = anthropic_model.AnthropicModel(
+        anthropic.Anthropic(), model="claude-haiku-4-5"
+    )
     agent = Agent(model, extensions=extensions.load(MANIFEST))
     events = agent.events(user_input())
     asyncio.run(render(events))

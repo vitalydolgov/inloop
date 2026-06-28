@@ -7,9 +7,11 @@ authors = [
     { name = "Vitaly Dolgov", email = "vitaly.dolgov@posteo.net" }
 ]
 requires-python = ">=3.13"
-dependencies = [
-    "anthropic>=0.112.0",
-]
+dependencies = []
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.112.0"]
+together = ["together>=2.19.0"]
 
 [build-system]
 requires = ["hatchling"]
