@@ -1,0 +1,20 @@
+[project]
+name = "agent-loop"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+authors = [
+    { name = "Vitaly Dolgov", email = "vitaly.dolgov@posteo.net" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "anthropic>=0.112.0",
+]
+
+[project.scripts]
+demo = "demo.main:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
