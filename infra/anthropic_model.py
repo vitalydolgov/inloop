@@ -1,9 +1,10 @@
 """Anthropic Messages API adapter."""
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 
 import anthropic
 
+from domain import message
 from domain import streaming
 
 DEFAULT_MODEL = "claude-sonnet-4-5"
@@ -23,13 +24,14 @@ class AnthropicModel:
         self._model = model
         self._max_tokens = max_tokens
 
-    def stream(self, message: str) -> Iterator[streaming.StreamEvent]:
-        """Stream a response to a single user message."""
+    def stream(self, messages: Sequence[message.Message]) -> Iterator[streaming.StreamEvent]:
+        """Stream a response to the conversation so far."""
+        payload = [{"role": m.role.value, "content": m.content} for m in messages]
         text_parts: list[str] = []
         with self._client.messages.stream(
             model=self._model,
             max_tokens=self._max_tokens,
-            messages=[{"role": "user", "content": message}],
+            messages=payload,
         ) as stream:
             for event in stream:
                 if event.type == "content_block_delta" and event.delta.type == "text_delta":

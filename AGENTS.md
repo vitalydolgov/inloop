@@ -15,4 +15,8 @@ Dependency rules:
 ## Python conventions
 
 - Docstrings should describe what something does or what it is — not how it works or what its parameters are.
-- Import modules directly — do not use __init__.py to re-export or aggregate imports.
+- Import modules directly — do not use `__init__.py` to re-export or aggregate imports.
+
+## Testing
+
+- Write tests only for `domain` and `app`, do not test `infra` unless explicitly requested.

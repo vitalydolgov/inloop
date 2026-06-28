@@ -18,3 +18,9 @@ demo = "demo.main:main"
 dev = [
     "pytest>=8.0.0",
 ]
+
+[tool.pytest.ini_options]
+addopts = ["-m", "not anthropic"]
+markers = [
+    "anthropic: hits the real Anthropic API",
+]
