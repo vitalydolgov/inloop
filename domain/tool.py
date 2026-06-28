@@ -4,7 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 
-@dataclass(frozen=True)
+@dataclass
 class Tool:
     """A named capability the model can ask to invoke, described by its inputs."""
 

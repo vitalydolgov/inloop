@@ -1,0 +1,4 @@
+# Extensions to load at startup.
+extensions = [
+    "calculator",
+]

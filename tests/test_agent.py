@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import AsyncIterator, Iterator, Sequence
 
 from app import agent
+from domain import extension
 from domain import message
 from domain import streaming
 from domain import tool
@@ -84,7 +85,7 @@ def test_offers_its_tools_to_the_model() -> None:
         execute=lambda args: "sunny",
     )
     model = _ScriptedModel(["sure"])
-    chat_agent = agent.Agent(model, tools=[weather])
+    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [weather])])
 
     async def gather() -> None:
         async for _ in chat_agent.events(_stream(["hi"])):
@@ -92,7 +93,8 @@ def test_offers_its_tools_to_the_model() -> None:
 
     asyncio.run(gather())
 
-    assert model.offered_tools == [[weather]]
+    namespaced = extension.Extension("test", [weather]).tools_by_name()["test__weather"]
+    assert model.offered_tools == [[namespaced]]
 
 
 def test_runs_requested_tool_and_feeds_result_back() -> None:
@@ -122,7 +124,7 @@ def test_runs_requested_tool_and_feeds_result_back() -> None:
             self.seen.append(list(messages))
             self._turn += 1
             if self._turn == 1:
-                yield streaming.ToolUse(id="t1", name="add", input={"a": 2, "b": 2})
+                yield streaming.ToolUse(id="t1", name="test__add", input={"a": 2, "b": 2})
                 yield streaming.MessageCompleted(text="", stop_reason="tool_use")
             else:
                 yield streaming.TextDelta("the sum is 4")
@@ -131,7 +133,7 @@ def test_runs_requested_tool_and_feeds_result_back() -> None:
                 )
 
     model = _ToolThenAnswer()
-    chat_agent = agent.Agent(model, tools=[adder])
+    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [adder])])
 
     async def gather() -> list[streaming.Event]:
         return [event async for event in chat_agent.events(_stream(["add 2 and 2"]))]
@@ -146,7 +148,7 @@ def test_runs_requested_tool_and_feeds_result_back() -> None:
         message.Message(message.Role.USER, [message.Text("add 2 and 2")]),
         message.Message(
             message.Role.ASSISTANT,
-            [message.ToolCall("t1", "add", {"a": 2, "b": 2})],
+            [message.ToolCall("t1", "test__add", {"a": 2, "b": 2})],
         ),
         message.Message(message.Role.USER, [message.ToolResult("t1", "4")]),
     ]
@@ -167,14 +169,14 @@ def test_runs_every_tool_requested_in_one_turn() -> None:
     model = _TurnModel(
         [
             [
-                streaming.ToolUse(id="c1", name="first", input={"x": 1}),
-                streaming.ToolUse(id="c2", name="second", input={"y": 2}),
+                streaming.ToolUse(id="c1", name="test__first", input={"x": 1}),
+                streaming.ToolUse(id="c2", name="test__second", input={"y": 2}),
                 streaming.MessageCompleted(text="", stop_reason="tool_use"),
             ],
             [streaming.MessageCompleted(text="done", stop_reason="end_turn")],
         ]
     )
-    chat_agent = agent.Agent(model, tools=[first, second])
+    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [first, second])])
 
     async def gather() -> None:
         async for _ in chat_agent.events(_stream(["go"])):
@@ -188,8 +190,8 @@ def test_runs_every_tool_requested_in_one_turn() -> None:
         message.Message(
             message.Role.ASSISTANT,
             [
-                message.ToolCall("c1", "first", {"x": 1}),
-                message.ToolCall("c2", "second", {"y": 2}),
+                message.ToolCall("c1", "test__first", {"x": 1}),
+                message.ToolCall("c2", "test__second", {"y": 2}),
             ],
         ),
         message.Message(
@@ -208,13 +210,13 @@ def test_assistant_turn_keeps_text_before_tool_calls() -> None:
         [
             [
                 streaming.TextDelta("let me check"),
-                streaming.ToolUse(id="c1", name="only", input={}),
+                streaming.ToolUse(id="c1", name="test__only", input={}),
                 streaming.MessageCompleted(text="let me check", stop_reason="tool_use"),
             ],
             [streaming.MessageCompleted(text="final", stop_reason="end_turn")],
         ]
     )
-    chat_agent = agent.Agent(model, tools=[only])
+    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [only])])
 
     async def gather() -> None:
         async for _ in chat_agent.events(_stream(["go"])):
@@ -224,7 +226,7 @@ def test_assistant_turn_keeps_text_before_tool_calls() -> None:
 
     assert chat_agent.conversation.history[1] == message.Message(
         message.Role.ASSISTANT,
-        [message.Text("let me check"), message.ToolCall("c1", "only", {})],
+        [message.Text("let me check"), message.ToolCall("c1", "test__only", {})],
     )
 
 

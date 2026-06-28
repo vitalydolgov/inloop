@@ -1,20 +1,16 @@
-agent-loop
+Agent Loop
 ==========
 
-Minimal uv Python project using Anthropic's Messages API.
-
-## Packages
-
-- `domain`: domain model
-- `infra`: adapters, including the Anthropic Messages API adapter
-- `demo`: executable example
+A minimal Python implementation of the agentic loop — streaming conversation with a language model that can call tools and act on their results.
 
 ## Setup
 
 ```sh
-uv sync
-export ANTHROPIC_API_KEY="your-api-key"
+uv sync --all-groups
+export ANTHROPIC_API_KEY="sk-ant-api..."
 uv run demo
 ```
 
-The example entrypoint is in `demo/main.py`.
+## Documentation
+
+- [Extensions](docs/extensions.md) — how to create and register tools

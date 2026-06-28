@@ -1,9 +1,7 @@
-"""A calculator tool the model can request to evaluate arithmetic."""
+"""Arithmetic expression evaluator."""
 
 import ast
 import operator
-
-from domain import tool
 
 _BINARY = {
     ast.Add: operator.add,
@@ -34,27 +32,10 @@ def _evaluate(node: ast.expr) -> float:
             raise ValueError("unsupported expression")
 
 
-def _run(args: dict[str, object]) -> str:
+def execute(args: dict[str, object]) -> str:
     """Evaluate the requested arithmetic expression and return its result."""
     expression = str(args["expression"])
     try:
         return str(_evaluate(ast.parse(expression, mode="eval").body))
     except (ValueError, SyntaxError, ZeroDivisionError) as error:
         return f"error: {error}"
-
-
-calculator = tool.Tool(
-    name="calculator",
-    description="Evaluate a basic arithmetic expression and return the result.",
-    parameters={
-        "type": "object",
-        "properties": {
-            "expression": {
-                "type": "string",
-                "description": "The arithmetic expression to evaluate, e.g. '2 + 2 * 3'.",
-            },
-        },
-        "required": ["expression"],
-    },
-    execute=_run,
-)

@@ -3,14 +3,16 @@
 import asyncio
 import sys
 from collections.abc import AsyncIterator
+from pathlib import Path
 
 import anthropic
 
 from app.agent import Agent
 from domain import streaming
 from infra import anthropic_model
+from infra import extensions
 
-from demo.tools import calculator
+MANIFEST = Path(__file__).resolve().parent.parent / "extensions.toml"
 
 
 async def stdin_lines() -> AsyncIterator[str]:
@@ -43,7 +45,7 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
             case streaming.TextDelta(delta):
                 print(delta, end="", flush=True)
             case streaming.ToolUse(_, name, tool_input):
-                print(f"\n[tool: {name} {tool_input}]")
+                print(f"\n[tool: {name.replace('__', ':', 1)} {tool_input}]")
             case streaming.MessageCompleted(_, stop_reason):
                 print(f"\n[done: {stop_reason}]")
 
@@ -51,6 +53,6 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
 def main():
     """Start the interactive Anthropic-backed chat demo."""
     model = anthropic_model.AnthropicModel(anthropic.Anthropic())
-    agent = Agent(model, tools=[calculator.calculator])
+    agent = Agent(model, extensions=extensions.load(MANIFEST))
     events = agent.events(user_input())
     asyncio.run(render(events))

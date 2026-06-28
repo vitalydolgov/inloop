@@ -7,7 +7,7 @@ from domain import message
 from domain.message import Message, Role
 from domain import model
 from domain import streaming
-from domain import tool
+from domain import extension
 
 COMMANDS = frozenset({"/exit", "/quit"})
 
@@ -16,10 +16,14 @@ class Agent:
     """A chat agent that owns its conversation, runs tools, and streams replies."""
 
     def __init__(
-        self, language_model: model.Model, tools: Sequence[tool.Tool] = ()
+        self,
+        language_model: model.Model,
+        extensions: Sequence[extension.Extension] = (),
     ) -> None:
         self._model = language_model
-        self._tools = {t.name: t for t in tools}
+        self._tools = {}
+        for ext in extensions:
+            self._tools.update(ext.tools_by_name())
         self.conversation = Conversation()
         """The conversation transcript owned by this agent."""
 

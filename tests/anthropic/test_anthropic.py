@@ -6,10 +6,11 @@ from collections.abc import AsyncIterator, Iterable
 import anthropic
 import pytest
 
+import calculator
+
 from app import agent
-from demo.tools import calculator
+from domain import extension
 from domain import streaming
-from domain import tool
 from infra import anthropic_model
 
 MODEL = "claude-haiku-4-5"
@@ -37,9 +38,9 @@ def _final_text(events: Iterable[streaming.Event]) -> str:
     return text
 
 
-def _agent(tools: list[tool.Tool] = []) -> agent.Agent:
+def _agent(extensions: list[extension.Extension] = []) -> agent.Agent:
     client = anthropic.Anthropic()
-    return agent.Agent(anthropic_model.AnthropicModel(client, model=MODEL), tools=tools)
+    return agent.Agent(anthropic_model.AnthropicModel(client, model=MODEL), extensions=extensions)
 
 
 def test_answers_a_factual_question() -> None:
@@ -64,7 +65,7 @@ def test_remembers_word_across_messages() -> None:
 
 
 def test_runs_the_calculator_tool() -> None:
-    chat = _agent(tools=[calculator.calculator])
+    chat = _agent(extensions=[calculator.EXTENSION])
     events = _run(chat, ["What is 2 + 2 * 3? Use the calculator tool."])
 
     tool_uses = [e for e in events if isinstance(e, streaming.ToolUse)]

@@ -21,9 +21,18 @@ packages = ["domain", "app", "infra", "demo"]
 [project.scripts]
 demo = "demo.main:main"
 
+[tool.uv.workspace]
+members = ["extensions/*"]
+
+[tool.uv.sources]
+calculator = { workspace = true }
+
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
+]
+extensions = [
+    "calculator",
 ]
 
 [tool.pytest.ini_options]
