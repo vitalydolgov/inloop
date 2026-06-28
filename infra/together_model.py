@@ -9,10 +9,6 @@ from domain import message
 from domain import streaming
 from domain import tool
 
-DEFAULT_MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
-DEFAULT_MAX_TOKENS = 1024
-
-
 def _messages(msgs: Sequence[message.Message]) -> list[dict[str, object]]:
     """Render domain messages as Together/OpenAI chat messages."""
     result: list[dict[str, object]] = []
@@ -84,8 +80,8 @@ class TogetherModel:
     def __init__(
         self,
         client: together.Together,
-        model: str = DEFAULT_MODEL,
-        max_tokens: int = DEFAULT_MAX_TOKENS,
+        model: str,
+        max_tokens: int,
     ) -> None:
         self._client = client
         self._model = model
@@ -110,6 +106,7 @@ class TogetherModel:
         tool_accum: dict[int, dict[str, str]] = {}
         text_parts: list[str] = []
         finish_reason: str | None = None
+        in_thinking = False
 
         for chunk in self._client.chat.completions.create(**kwargs):
             choice = chunk.choices[0] if chunk.choices else None
@@ -119,7 +116,16 @@ class TogetherModel:
                 finish_reason = choice.finish_reason
 
             delta = choice.delta
+            if delta.reasoning:
+                if not in_thinking:
+                    in_thinking = True
+                    yield streaming.ThinkingPhase.STARTED
+                yield streaming.ThinkingDelta(delta.reasoning)
+
             if delta.content:
+                if in_thinking:
+                    in_thinking = False
+                    yield streaming.ThinkingPhase.ENDED
                 text_parts.append(delta.content)
                 yield streaming.TextDelta(delta.content)
 
@@ -133,6 +139,9 @@ class TogetherModel:
                             "arguments": "",
                         }
                     tool_accum[idx]["arguments"] += tc.function.arguments
+
+        if in_thinking:
+            yield streaming.ThinkingPhase.ENDED
 
         for tc_data in tool_accum.values():
             yield streaming.ToolUse(

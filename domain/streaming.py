@@ -1,6 +1,21 @@
 """Events emitted while a model response streams back."""
 
 from dataclasses import dataclass
+from enum import Enum
+
+
+class ThinkingPhase(Enum):
+    """A boundary marker for the model's internal reasoning phase."""
+
+    STARTED = "started"
+    ENDED = "ended"
+
+
+@dataclass(frozen=True)
+class ThinkingDelta:
+    """A chunk of the model's internal reasoning."""
+
+    text: str
 
 
 @dataclass(frozen=True)
@@ -27,4 +42,4 @@ class MessageCompleted:
     stop_reason: str | None
 
 
-Event = TextDelta | ToolUse | MessageCompleted
+Event = ThinkingPhase | ThinkingDelta | TextDelta | ToolUse | MessageCompleted

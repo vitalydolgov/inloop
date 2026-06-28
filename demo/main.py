@@ -40,20 +40,46 @@ async def user_input() -> AsyncIterator[str]:
 
 async def render(events: AsyncIterator[streaming.Event]) -> None:
     """Present reply events as the app layer streams them."""
+    at_bol = True
+
+    def write(text: str) -> None:
+        nonlocal at_bol
+        print(text, end="", flush=True)
+        at_bol = text.endswith("\n")
+
+    def ensure_bol() -> None:
+        nonlocal at_bol
+        if not at_bol:
+            print(flush=True)
+            at_bol = True
+
     async for event in events:
         match event:
+            case streaming.ThinkingPhase.STARTED:
+                ensure_bol()
+                write("[think...]\n")
+            case streaming.ThinkingDelta(text):
+                write(text)
+            case streaming.ThinkingPhase.ENDED:
+                ensure_bol()
+                write("[...think]\n")
             case streaming.TextDelta(delta):
-                print(delta, end="", flush=True)
+                write(delta)
             case streaming.ToolUse(_, name, tool_input):
-                print(f"\n[tool: {name.replace('__', ':', 1)} {tool_input}]")
+                ensure_bol()
+                write(f"[tool: {name} {tool_input}]\n")
             case streaming.MessageCompleted(_, stop_reason):
-                print(f"\n[done: {stop_reason}]")
+                ensure_bol()
+                write(f"[done: {stop_reason}]\n")
 
 
 def main():
     """Start the interactive chat demo."""
     model = anthropic_model.AnthropicModel(
-        anthropic.Anthropic(), model="claude-haiku-4-5"
+        anthropic.Anthropic(),
+        model="claude-sonnet-4-6",
+        max_tokens=64_000,
+        effort="high"
     )
     agent = Agent(model, extensions=extensions.load(MANIFEST))
     events = agent.events(user_input())

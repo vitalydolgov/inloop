@@ -8,10 +8,6 @@ from domain import message
 from domain import streaming
 from domain import tool
 
-DEFAULT_MODEL = "claude-sonnet-4-5"
-DEFAULT_MAX_TOKENS = 1024
-
-
 def _content(blocks: Sequence[message.Block]) -> list[dict[str, object]]:
     """Render domain content blocks as Anthropic message content."""
     parts: list[dict[str, object]] = []
@@ -40,12 +36,16 @@ class AnthropicModel:
     def __init__(
         self,
         client: anthropic.Anthropic,
-        model: str = DEFAULT_MODEL,
-        max_tokens: int = DEFAULT_MAX_TOKENS,
+        model: str,
+        max_tokens: int,
+        effort: str | None = None,
+        thinking_budget: int | None = None,
     ) -> None:
         self._client = client
         self._model = model
         self._max_tokens = max_tokens
+        self._effort = effort
+        self._thinking_budget = thinking_budget
 
     def stream(
         self,
@@ -64,17 +64,34 @@ class AnthropicModel:
             }
             for t in tools
         ]
+        kwargs: dict[str, object] = {
+            "model": self._model,
+            "max_tokens": self._max_tokens,
+            "messages": payload,
+            "tools": tool_specs,
+        }
+        if self._effort is not None:
+            kwargs["output_config"] = {"effort": self._effort}
+        if self._thinking_budget is not None:
+            kwargs["thinking"] = {"type": "enabled", "budget_tokens": self._thinking_budget}
+
         text_parts: list[str] = []
-        with self._client.messages.stream(
-            model=self._model,
-            max_tokens=self._max_tokens,
-            messages=payload,
-            tools=tool_specs,
-        ) as stream:
+        in_thinking_block = False
+        with self._client.messages.stream(**kwargs) as stream:
             for event in stream:
-                if event.type == "content_block_delta" and event.delta.type == "text_delta":
-                    text_parts.append(event.delta.text)
-                    yield streaming.TextDelta(event.delta.text)
+                if event.type == "content_block_start":
+                    if event.content_block.type == "thinking":
+                        in_thinking_block = True
+                        yield streaming.ThinkingPhase.STARTED
+                elif event.type == "content_block_stop" and in_thinking_block:
+                    in_thinking_block = False
+                    yield streaming.ThinkingPhase.ENDED
+                elif event.type == "content_block_delta":
+                    if event.delta.type == "thinking_delta":
+                        yield streaming.ThinkingDelta(event.delta.thinking)
+                    elif event.delta.type == "text_delta":
+                        text_parts.append(event.delta.text)
+                        yield streaming.TextDelta(event.delta.text)
             final = stream.get_final_message()
 
         for block in final.content:

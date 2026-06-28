@@ -13,7 +13,12 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 import anthropic
 from infra.anthropic_model import AnthropicModel
 
-model = AnthropicModel(anthropic.Anthropic(), model="claude-haiku-4-5")
+model = AnthropicModel(
+    anthropic.Anthropic(),
+    model="claude-sonnet-4-6",
+    max_tokens=64_000,
+    effort="high",
+)
 ```
 
 ## Together AI
@@ -27,7 +32,9 @@ export TOGETHER_API_KEY="..."
 import together
 from infra.together_model import TogetherModel
 
-model = TogetherModel(together.Together(), model="google/gemma-4-31B-it")
+model = TogetherModel(
+    together.Together(),
+    model="google/gemma-4-31B-it",
+    max_tokens=64_000,
+)
 ```
-
-Both classes accept optional `model` and `max_tokens` keyword arguments to override the defaults.
