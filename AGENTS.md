@@ -16,6 +16,7 @@ Dependency rules:
 
 - Docstrings should describe what something does or what it is — not how it works or what its parameters are.
 - Import modules directly — do not use `__init__.py` to re-export or aggregate imports.
+- When returning a sequence, always use a list — never a tuple.
 
 ## Testing
 

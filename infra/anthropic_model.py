@@ -24,7 +24,7 @@ class AnthropicModel:
         self._model = model
         self._max_tokens = max_tokens
 
-    def stream(self, messages: Sequence[message.Message]) -> Iterator[streaming.StreamEvent]:
+    def stream(self, messages: Sequence[message.Message]) -> Iterator[streaming.Event]:
         """Stream a response to the conversation so far."""
         payload = [{"role": m.role.value, "content": m.content} for m in messages]
         text_parts: list[str] = []

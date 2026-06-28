@@ -14,7 +14,7 @@ MODEL = "claude-haiku-4-5"
 
 pytestmark = pytest.mark.anthropic
 
-def _final_text(events: Iterable[streaming.StreamEvent]) -> str:
+def _final_text(events: Iterable[streaming.Event]) -> str:
     text = ""
     for event in events:
         if isinstance(event, streaming.MessageCompleted):

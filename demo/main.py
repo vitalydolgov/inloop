@@ -1,13 +1,12 @@
-"""Run an interactive chat, streaming each reply as it arrives."""
+"""Run an interactive chat, rendering each reply as the app layer streams it."""
 
-import argparse
 import asyncio
 import sys
 from collections.abc import AsyncIterator
 
 import anthropic
 
-from app import conversation
+from app.agent import Agent
 from domain import streaming
 from infra import anthropic_model
 
@@ -27,20 +26,17 @@ async def stdin_lines() -> AsyncIterator[str]:
         yield line.decode()
 
 
-async def user_input(initial_message: str | None) -> AsyncIterator[str]:
+async def user_input() -> AsyncIterator[str]:
     """Yield meaningful user messages for the chat."""
-    if initial_message:
-        yield initial_message
-
     async for line in stdin_lines():
         text = line.strip()
         if text:
             yield text
 
 
-def stream_reply(chat: conversation.Conversation, text: str) -> None:
-    """Stream one assistant reply for a user message."""
-    for event in chat.ask(text):
+async def render(events: AsyncIterator[streaming.Event]) -> None:
+    """Present reply events as the app layer streams them."""
+    async for event in events:
         match event:
             case streaming.TextDelta(delta):
                 print(delta, end="", flush=True)
@@ -48,16 +44,9 @@ def stream_reply(chat: conversation.Conversation, text: str) -> None:
                 print(f"\n[done: {stop_reason}]")
 
 
-async def chat(initial_message: str | None) -> None:
-    """Process the input stream indefinitely, streaming a reply for each message."""
-    chat = conversation.Conversation(anthropic_model.AnthropicModel(anthropic.Anthropic()))
-    async for text in user_input(initial_message):
-        if text == "/exit":
-            return
-        stream_reply(chat, text)
-
-
-def main() -> None:
-    """Read requests from the terminal and stream each response."""
-    argparse.ArgumentParser(prog="demo").parse_args()
-    asyncio.run(chat(None))
+def main():
+    """Start the interactive Anthropic-backed chat demo."""
+    model = anthropic_model.AnthropicModel(anthropic.Anthropic())
+    agent = Agent(model)
+    events = agent.events(user_input())
+    asyncio.run(render(events))

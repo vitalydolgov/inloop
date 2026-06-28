@@ -18,4 +18,4 @@ class MessageCompleted:
     stop_reason: str | None
 
 
-StreamEvent = TextDelta | MessageCompleted
+Event = TextDelta | MessageCompleted
