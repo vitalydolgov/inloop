@@ -6,9 +6,32 @@ import anthropic
 
 from domain import message
 from domain import streaming
+from domain import tool
 
 DEFAULT_MODEL = "claude-sonnet-4-5"
 DEFAULT_MAX_TOKENS = 1024
+
+
+def _content(blocks: Sequence[message.Block]) -> list[dict[str, object]]:
+    """Render domain content blocks as Anthropic message content."""
+    parts: list[dict[str, object]] = []
+    for block in blocks:
+        match block:
+            case message.Text(text):
+                parts.append({"type": "text", "text": text})
+            case message.ToolCall(id, name, input):
+                parts.append(
+                    {"type": "tool_use", "id": id, "name": name, "input": input}
+                )
+            case message.ToolResult(tool_call_id, content):
+                parts.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": tool_call_id,
+                        "content": content,
+                    }
+                )
+    return parts
 
 
 class AnthropicModel:
@@ -24,20 +47,43 @@ class AnthropicModel:
         self._model = model
         self._max_tokens = max_tokens
 
-    def stream(self, messages: Sequence[message.Message]) -> Iterator[streaming.Event]:
-        """Stream a response to the conversation so far."""
-        payload = [{"role": m.role.value, "content": m.content} for m in messages]
+    def stream(
+        self,
+        messages: Sequence[message.Message],
+        tools: Sequence[tool.Tool] = (),
+    ) -> Iterator[streaming.Event]:
+        """Stream a response to the conversation, offering the given tools."""
+        payload = [
+            {"role": m.role.value, "content": _content(m.content)} for m in messages
+        ]
+        tool_specs = [
+            {
+                "name": t.name,
+                "description": t.description,
+                "input_schema": t.parameters,
+            }
+            for t in tools
+        ]
         text_parts: list[str] = []
         with self._client.messages.stream(
             model=self._model,
             max_tokens=self._max_tokens,
             messages=payload,
+            tools=tool_specs,
         ) as stream:
             for event in stream:
                 if event.type == "content_block_delta" and event.delta.type == "text_delta":
                     text_parts.append(event.delta.text)
                     yield streaming.TextDelta(event.delta.text)
             final = stream.get_final_message()
+
+        for block in final.content:
+            if block.type == "tool_use":
+                yield streaming.ToolUse(
+                    id=block.id,
+                    name=block.name,
+                    input=dict(block.input),
+                )
 
         yield streaming.MessageCompleted(
             text="".join(text_parts),

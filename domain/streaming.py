@@ -11,6 +11,15 @@ class TextDelta:
 
 
 @dataclass(frozen=True)
+class ToolUse:
+    """A request from the model to invoke a tool with the given input."""
+
+    id: str
+    name: str
+    input: dict[str, object]
+
+
+@dataclass(frozen=True)
 class MessageCompleted:
     """The successful end of a streamed response."""
 
@@ -18,4 +27,4 @@ class MessageCompleted:
     stop_reason: str | None
 
 
-Event = TextDelta | MessageCompleted
+Event = TextDelta | ToolUse | MessageCompleted

@@ -10,6 +10,8 @@ from app.agent import Agent
 from domain import streaming
 from infra import anthropic_model
 
+from demo.tools import calculator
+
 
 async def stdin_lines() -> AsyncIterator[str]:
     """Yield lines from stdin without blocking the event loop."""
@@ -40,6 +42,8 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
         match event:
             case streaming.TextDelta(delta):
                 print(delta, end="", flush=True)
+            case streaming.ToolUse(_, name, tool_input):
+                print(f"\n[tool: {name} {tool_input}]")
             case streaming.MessageCompleted(_, stop_reason):
                 print(f"\n[done: {stop_reason}]")
 
@@ -47,6 +51,6 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
 def main():
     """Start the interactive Anthropic-backed chat demo."""
     model = anthropic_model.AnthropicModel(anthropic.Anthropic())
-    agent = Agent(model)
+    agent = Agent(model, tools=[calculator.calculator])
     events = agent.events(user_input())
     asyncio.run(render(events))

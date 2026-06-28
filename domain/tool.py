@@ -1,0 +1,14 @@
+"""A capability the model may request to use."""
+
+from collections.abc import Callable
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Tool:
+    """A named capability the model can ask to invoke, described by its inputs."""
+
+    name: str
+    description: str
+    parameters: dict[str, object]
+    execute: Callable[[dict[str, object]], str]

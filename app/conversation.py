@@ -1,6 +1,6 @@
 """A multi-turn conversation transcript."""
 
-from domain.message import Role, Message
+from domain.message import Message
 
 
 class Conversation:
@@ -10,6 +10,6 @@ class Conversation:
         self.history: list[Message] = []
         """The messages exchanged so far, in order."""
 
-    def add(self, role: Role, content: str) -> None:
+    def add(self, message: Message) -> None:
         """Append a message to the transcript."""
-        self.history.append(Message(role, content))
+        self.history.append(message)

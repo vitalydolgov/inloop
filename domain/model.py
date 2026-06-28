@@ -5,11 +5,16 @@ from typing import Protocol
 
 from domain import message
 from domain import streaming
+from domain import tool
 
 
 class Model(Protocol):
     """A language model that answers a conversation as a stream of events."""
 
-    def stream(self, messages: Sequence[message.Message]) -> Iterator[streaming.Event]:
-        """Yield response events for the conversation so far."""
+    def stream(
+        self,
+        messages: Sequence[message.Message],
+        tools: Sequence[tool.Tool] = (),
+    ) -> Iterator[streaming.Event]:
+        """Yield response events for the conversation, offering the given tools."""
         ...

@@ -13,10 +13,9 @@ def test_history_starts_empty() -> None:
 def test_add_records_messages_in_order() -> None:
     convo = conversation.Conversation()
 
-    convo.add(message.Role.USER, "hello")
-    convo.add(message.Role.ASSISTANT, "hi there")
+    hello = message.Message(message.Role.USER, [message.Text("hello")])
+    hi_there = message.Message(message.Role.ASSISTANT, [message.Text("hi there")])
+    convo.add(hello)
+    convo.add(hi_there)
 
-    assert convo.history == [
-        message.Message(message.Role.USER, "hello"),
-        message.Message(message.Role.ASSISTANT, "hi there"),
-    ]
+    assert convo.history == [hello, hi_there]
