@@ -1,4 +1,4 @@
-# Loop
+# InLoop
 
 A hackable Python implementation of the agentic loop: a language model streams a conversation, calls tools, and acts on their results. Add your own tools via extensions.
 

@@ -27,7 +27,7 @@ uv sync --all-groups
 
 To remove one: `uv remove --group extensions <extension>` and drop its name from `extensions.toml`.
 
-> The external extension depends on `agent-loop`. Its own `[tool.uv.sources]` (e.g. `agent-loop = { path = "../agent-loop" }`) only matters when developing that repo standalone — when consumed as a dependency here, this project supplies `agent-loop`, so the dependency's sources are ignored.
+> The external extension depends on `inloop`. Its own `[tool.uv.sources]` (e.g. `inloop = { git = "https://github.com/vitalydolgov/inloop" }`) only matters when developing that repo standalone — when consumed as a dependency, the host project resolves `inloop` and its own source takes over.
 
 ## Adding a bundled extension
 
@@ -37,14 +37,14 @@ To remove one: `uv remove --group extensions <extension>` and drop its name from
 [project]
 name = "<extension>"
 ...
-dependencies = ["agent-loop"]
+dependencies = ["inloop"]
 
 [build-system]  # required — uv won't install the extension without it; any PEP 517 backend works
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv.sources]
-agent-loop = { workspace = true }  # resolve from the local workspace, not PyPI
+inloop = { workspace = true }  # resolve from the local workspace, not PyPI
 ```
 
 **2. Create `extensions/<extension>/<module>/__init__.py`**
