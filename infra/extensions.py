@@ -1,16 +1,12 @@
-"""Loads the extensions declared in an extensions.toml manifest."""
+"""Discovers and loads extensions registered under the inloop.extensions entry point."""
 
-import importlib
-import tomllib
-from pathlib import Path
+from importlib.metadata import entry_points
 
 from domain import extension
 
-ATTRIBUTE = "EXTENSION"
+GROUP = "inloop.extensions"
 
 
-def load(manifest: Path) -> list[extension.Extension]:
-    """Import every module declared in the manifest and collect its extension."""
-    declared = tomllib.loads(manifest.read_text())
-    modules = declared.get("extensions", [])
-    return [getattr(importlib.import_module(name), ATTRIBUTE) for name in modules]
+def load() -> list[extension.Extension]:
+    """Load every installed extension registered in the inloop.extensions group."""
+    return [ep.load() for ep in entry_points(group=GROUP)]

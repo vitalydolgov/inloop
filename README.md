@@ -43,7 +43,7 @@ Around the loop sit the harness capabilities — each a seam where the harness e
 
 ## Extensions
 
-An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled under `extensions/` or living in its own repo — that exposes an `EXTENSION` value describing its tools. See [docs/extensions.md](docs/extensions.md) for how to create, install, and register one.
+An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled under `extensions/` or living in its own repo — that exposes an `EXTENSION` value describing its tools. Installed extensions are discovered automatically. See [docs/extensions.md](docs/extensions.md) for how to create and install one.
 
 ### Built-in extensions
 
@@ -79,19 +79,19 @@ Install the provider extras, export the matching API key, then run the demo.
 Install every provider extra:
 
 ```sh
-uv sync --all-groups --all-extras
+uv sync --all-extras
 uv run demo
 ```
 
 Or install just one provider — for example, Anthropic:
 
 ```sh
-uv sync --all-groups --extra anthropic
+uv sync --extra anthropic
 export ANTHROPIC_API_KEY=...
 uv run demo
 ```
 
 ## Documentation
 
-- [Extensions](docs/extensions.md) — how to create, install, and register extensions
+- [Extensions](docs/extensions.md) — how to create and install extensions
 - [Providers](docs/providers.md) — supported LLM backends, how to configure them, and how to write your own

@@ -3,14 +3,10 @@
 import asyncio
 import sys
 from collections.abc import AsyncIterator
-from pathlib import Path
 
 from app.agent import Agent
 from domain import streaming
 from infra import extensions
-
-MANIFEST = Path(__file__).resolve().parent.parent / "extensions.toml"
-
 
 async def stdin_lines() -> AsyncIterator[str]:
     """Yield lines from stdin without blocking the event loop."""
@@ -81,6 +77,6 @@ def main():
         max_tokens=64_000,
         effort="high"
     )
-    agent = Agent(model, extensions=extensions.load(MANIFEST))
+    agent = Agent(model, extensions=extensions.load())
     events = agent.events(user_input())
     asyncio.run(render(events))

@@ -1,10 +1,10 @@
 # Extensions
 
-Each extension is an installable package that exposes an `EXTENSION` value. Bundled extensions live under `extensions/` as uv workspace members; external extensions live in their own repo and are installed by path or git url. The loader doesn't care which — it imports the names listed in `extensions.toml` and reads each module's `EXTENSION`.
+Each extension is an installable package that exposes an `EXTENSION` value and declares an `inloop.extensions` entry point. The loader discovers every installed package registered under that group — no manifest file required. Bundled extensions live under `extensions/` as uv workspace members; external extensions live in their own repo and are installed by path or git url.
 
 ## Installing an external extension
 
-An extension developed in its own repo only needs to (a) be installed into this project's environment and (b) be listed by its import name in `extensions.toml`. Use native uv to install from a path or git url:
+An extension developed in its own repo only needs to be installed into this project's environment. Use native uv to install from a path or git url:
 
 ```sh
 # by path (use --editable while co-developing both repos)
@@ -15,19 +15,15 @@ uv add --group extensions "git+https://github.com/<you>/<extension>"
 uv add --group extensions "git+https://github.com/<you>/<extension>@v0.1.0"
 ```
 
-This records the package under the `extensions` dependency group plus a matching `[tool.uv.sources]` entry (`{ path = ... }` or `{ git = ... }`) in the root `pyproject.toml`. Then declare its **import name** in `extensions.toml` and sync:
+This records the package under the `extensions` dependency group plus a matching `[tool.uv.sources]` entry in the root `pyproject.toml`. The extension is picked up automatically on next run.
 
-```toml
-extensions = ["<module>"]
-```
+## Removing an external extension
 
 ```sh
-uv sync --all-groups
+uv remove --group extensions <extension>
 ```
 
-To remove one: `uv remove --group extensions <extension>` and drop its name from `extensions.toml`.
-
-> The external extension depends on `inloop`. Its own `[tool.uv.sources]` (e.g. `inloop = { git = "https://github.com/vitalydolgov/inloop" }`) only matters when developing that repo standalone — when consumed as a dependency, the host project resolves `inloop` and its own source takes over.
+This removes the package from `pyproject.toml` and uninstalls it. Since discovery is entry-point-based, the extension stops being loaded immediately — nothing else to clean up.
 
 ## Adding a bundled extension
 
@@ -39,6 +35,9 @@ name = "<extension>"
 ...
 dependencies = ["inloop"]
 
+[project.entry-points."inloop.extensions"]
+<extension> = "<module>:EXTENSION"
+
 [build-system]  # required — uv won't install the extension without it; any PEP 517 backend works
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -49,7 +48,7 @@ inloop = { workspace = true }  # resolve from the local workspace, not PyPI
 
 **2. Create `extensions/<extension>/<module>/__init__.py`**
 
-The package name must match what you declare in `extensions.toml` (step 4). `__init__.py` is the entry point and must export `EXTENSION`.
+`__init__.py` is the entry point and must export `EXTENSION`.
 
 ```python
 from domain import extension, tool
@@ -74,17 +73,17 @@ EXTENSION = extension.Extension(name="<extension>", tools=[_my_tool])
 extensions = ["<extension>"]  # uv won't install a workspace member unless it appears as a dependency
 ```
 
-**4. Declare in `extensions.toml`**
-
-```toml
-extensions = ["<extension>"]
-```
-
-**5. Sync**
+**4. Sync**
 
 ```sh
-uv sync --all-groups
+uv sync
 ```
+
+## Removing a bundled extension
+
+1. Delete `extensions/<extension>/`
+2. Remove `<extension>` from `[dependency-groups] extensions` and `[tool.uv.sources]` in the root `pyproject.toml`
+3. Run `uv sync`
 
 ## Tool descriptions
 
