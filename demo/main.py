@@ -5,11 +5,8 @@ import sys
 from collections.abc import AsyncIterator
 from pathlib import Path
 
-import anthropic
-
 from app.agent import Agent
 from domain import streaming
-from infra import anthropic_model
 from infra import extensions
 
 MANIFEST = Path(__file__).resolve().parent.parent / "extensions.toml"
@@ -75,6 +72,9 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
 
 def main():
     """Start the interactive chat demo."""
+    import anthropic
+    from infra import anthropic_model
+
     model = anthropic_model.AnthropicModel(
         anthropic.Anthropic(),
         model="claude-sonnet-4-6",

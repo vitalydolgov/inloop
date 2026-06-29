@@ -29,6 +29,7 @@ members = ["extensions/*"]
 [tool.uv.sources]
 browser = { workspace = true }
 calculator = { workspace = true }
+filesystem = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -37,6 +38,7 @@ dev = [
 extensions = [
     "browser",
     "calculator",
+    "filesystem",
 ]
 
 [tool.pytest.ini_options]

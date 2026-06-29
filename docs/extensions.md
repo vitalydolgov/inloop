@@ -1,8 +1,35 @@
 # Extensions
 
-Tools live in their own projects under `extensions/`. Each extension is a uv workspace member that exposes an `EXTENSION` value.
+Each extension is an installable package that exposes an `EXTENSION` value. Bundled extensions live under `extensions/` as uv workspace members; external extensions live in their own repo and are installed by path or git url. The loader doesn't care which — it imports the names listed in `extensions.toml` and reads each module's `EXTENSION`.
 
-## Adding an extension
+## Installing an external extension
+
+An extension developed in its own repo only needs to (a) be installed into this project's environment and (b) be listed by its import name in `extensions.toml`. Use native uv to install from a path or git url:
+
+```sh
+# by path (use --editable while co-developing both repos)
+uv add --group extensions --editable ../<extension>
+
+# by git url (optionally pin a branch/tag/commit)
+uv add --group extensions "git+https://github.com/<you>/<extension>"
+uv add --group extensions "git+https://github.com/<you>/<extension>@v0.1.0"
+```
+
+This records the package under the `extensions` dependency group plus a matching `[tool.uv.sources]` entry (`{ path = ... }` or `{ git = ... }`) in the root `pyproject.toml`. Then declare its **import name** in `extensions.toml` and sync:
+
+```toml
+extensions = ["<module>"]
+```
+
+```sh
+uv sync --all-groups
+```
+
+To remove one: `uv remove --group extensions <extension>` and drop its name from `extensions.toml`.
+
+> The external extension depends on `agent-loop`. Its own `[tool.uv.sources]` (e.g. `agent-loop = { path = "../agent-loop" }`) only matters when developing that repo standalone — when consumed as a dependency here, this project supplies `agent-loop`, so the dependency's sources are ignored.
+
+## Adding a bundled extension
 
 **1. Create `extensions/<extension>/pyproject.toml`**
 

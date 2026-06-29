@@ -1,7 +1,16 @@
-Agent Loop
-==========
+# Loop
 
-A minimal Python implementation of the agentic loop — streaming conversation with a language model that can call tools and act on their results.
+A hackable Python implementation of the agentic loop: a language model streams a conversation, calls tools, and acts on their results. Add your own tools via extensions.
+
+## Extensions
+
+An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled under `extensions/` or living in its own repo — that exposes an `EXTENSION` value describing its tools. See [docs/extensions.md](docs/extensions.md) for how to create, install, and register one.
+
+### Built-in extensions
+
+- `calculator` — evaluates arithmetic expressions (a minimal example extension)
+- `browser` — drives a Chrome browser for web automation
+- `filesystem` — reads, writes, and patches files on disk
 
 ## Example
 
@@ -22,19 +31,24 @@ I should use the calculator__evaluate tool to perform this arithmetic operation.
 
 ## Setup
 
-Install the extra for your chosen provider, export its API key, then run the demo:
+Install the provider extras, export the matching API key, then run the demo.
+
+Install every provider extra:
 
 ```sh
-uv sync --all-groups --extra anthropic
+uv sync --all-groups --all-extras
 uv run demo
 ```
 
-## Built-in Extensions
+Or install just one provider — for example, Anthropic:
 
-- `calculator` — evaluate arithmetic expressions
-- `browser` — control a Chrome browser
+```sh
+uv sync --all-groups --extra anthropic
+export ANTHROPIC_API_KEY=...
+uv run demo
+```
 
 ## Documentation
 
-- [Extensions](docs/extensions.md) — how to create and register tools
-- [Providers](docs/providers.md) — supported LLM backends and how to configure them
+- [Extensions](docs/extensions.md) — how to create, install, and register extensions
+- [Providers](docs/providers.md) — supported LLM backends, how to configure them, and how to write your own
