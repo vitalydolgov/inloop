@@ -29,6 +29,11 @@ uv sync --all-groups --extra anthropic
 uv run demo
 ```
 
+## Built-in Extensions
+
+- `calculator` — evaluate arithmetic expressions
+- `browser` — control a Chrome browser
+
 ## Documentation
 
 - [Extensions](docs/extensions.md) — how to create and register tools

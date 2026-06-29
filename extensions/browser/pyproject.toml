@@ -1,0 +1,16 @@
+[project]
+name = "browser"
+version = "0.1.0"
+description = "Browser control tools via Playwright."
+requires-python = ">=3.13"
+dependencies = [
+    "agent-loop",
+    "playwright",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+agent-loop = { workspace = true }

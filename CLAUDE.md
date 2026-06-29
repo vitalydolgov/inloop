@@ -12,6 +12,12 @@ Dependency rules:
 - `domain` must not import from any other layer — it has zero dependencies on the rest of the project.
 - `app` must not import from `infra` or `demo` — it only coordinates domain concepts.
 
+## Extensions
+
+Extensions live under `extensions/` as independent uv workspace members. Each exposes an `EXTENSION` attribute of type `domain.extension.Extension`. The `extensions.toml` file at the project root controls which extensions are loaded at startup.
+
+- Extensions that need to persist state (profiles, caches, databases) should store it under `var/` within their own folder.
+
 ## Python conventions
 
 - Docstrings should describe what something does or what it is — not how it works or what its parameters are.

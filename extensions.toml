@@ -1,4 +1,5 @@
 # Extensions to load at startup.
 extensions = [
+    "browser",
     "calculator",
 ]

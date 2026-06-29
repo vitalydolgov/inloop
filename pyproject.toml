@@ -27,6 +27,7 @@ demo = "demo.main:main"
 members = ["extensions/*"]
 
 [tool.uv.sources]
+browser = { workspace = true }
 calculator = { workspace = true }
 
 [dependency-groups]
@@ -34,6 +35,7 @@ dev = [
     "pytest>=8.0.0",
 ]
 extensions = [
+    "browser",
     "calculator",
 ]
 
