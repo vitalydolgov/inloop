@@ -1,4 +1,4 @@
-"""Browser control extension powered by Playwright."""
+"""Browser extension: navigate and interact with web pages."""
 
 import asyncio
 import inspect
@@ -48,67 +48,18 @@ async def _get_page():
         return _page
 
 
-async def _do(action):
-    try:
-        page = await _get_page()
-        result = action(page)
-        return await result if inspect.isawaitable(result) else result
-    except PlaywrightError as exc:
-        raise RuntimeError(str(exc).strip().splitlines()[0]) from None
+def _run(action):
+    async def coro():
+        try:
+            page = await _get_page()
+            result = action(page)
+            return await result if inspect.isawaitable(result) else result
+        except PlaywrightError as exc:
+            raise RuntimeError(str(exc).strip().splitlines()[0]) from None
+    return asyncio.run_coroutine_threadsafe(coro(), _loop).result()
 
 
-def _run(coro):
-    return asyncio.run_coroutine_threadsafe(coro, _loop).result()
-
-
-def _call(coro_fn, args: dict) -> str:
-    try:
-        result = _run(coro_fn(**args))
-        return "" if result is None else str(result)
-    except Exception as exc:
-        return f"error: {exc}"
-
-
-async def _navigate(url: str) -> str:
-    if not url.strip():
-        raise RuntimeError("url must not be empty")
-    if "://" not in url:
-        url = "https://" + url
-    async def go(page):
-        await page.goto(url, wait_until="domcontentloaded")
-        return f"loaded {page.url} — {await page.title()!r}"
-    return await _do(go)
-
-
-async def _snapshot() -> str:
-    return await _do(lambda page: page.locator("body").aria_snapshot())
-
-
-async def _click(selector: str) -> None:
-    await _do(lambda page: page.locator(selector).first.click())
-
-
-async def _fill(selector: str, text: str) -> None:
-    await _do(lambda page: page.locator(selector).first.fill(text))
-
-
-async def _press(selector: str, key: str) -> None:
-    await _do(lambda page: page.locator(selector).first.press(key))
-
-
-async def _get_text(selector: str) -> str:
-    return await _do(lambda page: page.locator(selector).first.inner_text())
-
-
-async def _current_url() -> str:
-    return await _do(lambda page: page.url)
-
-
-async def _wait_for(selector: str, timeout_ms: int = _DEFAULT_TIMEOUT_MS) -> None:
-    await _do(lambda page: page.locator(selector).first.wait_for(timeout=timeout_ms))
-
-
-navigate = contrib.Tool(
+@contrib.tool(
     name="navigate",
     description=(
         "Navigate the browser to a URL and wait for DOM content to load. "
@@ -122,20 +73,32 @@ navigate = contrib.Tool(
         },
         "required": ["url"],
     },
-    execute=lambda args: _call(_navigate, args),
 )
+def navigate(args: dict[str, object]) -> str:
+    url = str(args["url"])
+    if not url.strip():
+        raise RuntimeError("url must not be empty")
+    if "://" not in url:
+        url = "https://" + url
+    async def go(page):
+        await page.goto(url, wait_until="domcontentloaded")
+        return f"loaded {page.url} — {await page.title()!r}"
+    return _run(go)
 
-snapshot = contrib.Tool(
+
+@contrib.tool(
     name="snapshot",
     description=(
         "Return an accessibility-tree snapshot of the current page as YAML. "
         "Use to understand page structure and locate interactive elements before acting."
     ),
     parameters={"type": "object", "properties": {}},
-    execute=lambda args: _call(_snapshot, args),
 )
+def snapshot(args: dict[str, object]) -> str:
+    return _run(lambda page: page.locator("body").aria_snapshot())
 
-click = contrib.Tool(
+
+@contrib.tool(
     name="click",
     description="Click the first element matching a Playwright or CSS selector.",
     parameters={
@@ -145,10 +108,13 @@ click = contrib.Tool(
         },
         "required": ["selector"],
     },
-    execute=lambda args: _call(_click, args),
 )
+def click(args: dict[str, object]) -> None:
+    selector = str(args["selector"])
+    _run(lambda page: page.locator(selector).first.click())
 
-fill = contrib.Tool(
+
+@contrib.tool(
     name="fill",
     description="Fill an input, textarea, or contenteditable element with text.",
     parameters={
@@ -159,10 +125,14 @@ fill = contrib.Tool(
         },
         "required": ["selector", "text"],
     },
-    execute=lambda args: _call(_fill, args),
 )
+def fill(args: dict[str, object]) -> None:
+    selector = str(args["selector"])
+    text = str(args["text"])
+    _run(lambda page: page.locator(selector).first.fill(text))
 
-press = contrib.Tool(
+
+@contrib.tool(
     name="press",
     description="Simulate pressing a key or chord (e.g. 'Enter', 'Control+a') on an element.",
     parameters={
@@ -173,10 +143,14 @@ press = contrib.Tool(
         },
         "required": ["selector", "key"],
     },
-    execute=lambda args: _call(_press, args),
 )
+def press(args: dict[str, object]) -> None:
+    selector = str(args["selector"])
+    key = str(args["key"])
+    _run(lambda page: page.locator(selector).first.press(key))
 
-get_text = contrib.Tool(
+
+@contrib.tool(
     name="get_text",
     description="Return the visible inner text of the first element matching the selector.",
     parameters={
@@ -186,17 +160,22 @@ get_text = contrib.Tool(
         },
         "required": ["selector"],
     },
-    execute=lambda args: _call(_get_text, args),
 )
+def get_text(args: dict[str, object]) -> str:
+    selector = str(args["selector"])
+    return _run(lambda page: page.locator(selector).first.inner_text())
 
-current_url = contrib.Tool(
+
+@contrib.tool(
     name="current_url",
     description="Return the URL of the page currently open in the browser.",
     parameters={"type": "object", "properties": {}},
-    execute=lambda args: _call(_current_url, args),
 )
+def current_url(args: dict[str, object]) -> str:
+    return _run(lambda page: page.url)
 
-wait_for = contrib.Tool(
+
+@contrib.tool(
     name="wait_for",
     description=(
         "Wait until the first element matching the selector appears in the DOM. "
@@ -210,8 +189,12 @@ wait_for = contrib.Tool(
         },
         "required": ["selector"],
     },
-    execute=lambda args: _call(_wait_for, args),
 )
+def wait_for(args: dict[str, object]) -> None:
+    selector = str(args["selector"])
+    timeout_ms = int(args.get("timeout_ms", _DEFAULT_TIMEOUT_MS))
+    _run(lambda page: page.locator(selector).first.wait_for(timeout=timeout_ms))
+
 
 EXTENSION = contrib.Extension(
     name="browser",

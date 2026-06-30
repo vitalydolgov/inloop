@@ -1,19 +1,11 @@
-"""Filesystem extension — read, write, and patch files."""
+"""Filesystem extension: read, write, and patch files."""
+
+from pathlib import Path
 
 from inloop import contrib
 
-from filesystem import operations
 
-
-def _run(fn, *args):
-    try:
-        result = fn(*args)
-        return "ok" if result is None else result
-    except Exception as exc:
-        return str(exc)
-
-
-read = contrib.Tool(
+@contrib.tool(
     name="read",
     description=(
         "Read and return the full text content of a file given its path. "
@@ -27,10 +19,12 @@ read = contrib.Tool(
         },
         "required": ["path"],
     },
-    execute=lambda args: _run(operations.read, str(args["path"])),
 )
+def read(args: dict[str, object]) -> str:
+    return Path(str(args["path"])).expanduser().read_text()
 
-write = contrib.Tool(
+
+@contrib.tool(
     name="write",
     description=(
         "Write text content to a file, creating the file and any missing parent directories. "
@@ -45,10 +39,14 @@ write = contrib.Tool(
         },
         "required": ["path", "content"],
     },
-    execute=lambda args: _run(operations.write, str(args["path"]), str(args["content"])),
 )
+def write(args: dict[str, object]) -> None:
+    p = Path(str(args["path"])).expanduser()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(str(args["content"]))
 
-patch = contrib.Tool(
+
+@contrib.tool(
     name="patch",
     description=(
         "Replace the first occurrence of a string in a file with new text. "
@@ -64,7 +62,14 @@ patch = contrib.Tool(
         },
         "required": ["path", "old", "new"],
     },
-    execute=lambda args: _run(operations.patch, str(args["path"]), str(args["old"]), str(args["new"])),
 )
+def patch(args: dict[str, object]) -> None:
+    p = Path(str(args["path"])).expanduser()
+    text = p.read_text()
+    old = str(args["old"])
+    if old not in text:
+        raise ValueError(f"text not found: {old!r}")
+    p.write_text(text.replace(old, str(args["new"]), 1))
+
 
 EXTENSION = contrib.Extension(name="filesystem", tools=[read, write, patch])

@@ -51,16 +51,17 @@ inloop = { workspace = true }  # resolve from the local workspace, not PyPI
 `__init__.py` is the entry point and must export `EXTENSION`.
 
 ```python
-from domain import extension, tool
+from inloop import contrib
 
-_my_tool = tool.Tool(
-    name="<extension>",
+@contrib.tool(
+    name="<name>",
     description="What this tool does.",
     parameters={"type": "object", "properties": {...}, "required": [...]},
-    execute=lambda args: "result",
 )
+def my_tool(args: dict[str, object]) -> str:
+    return "result"
 
-EXTENSION = extension.Extension(name="<extension>", tools=[_my_tool])
+EXTENSION = contrib.Extension(name="<extension>", tools=[my_tool])
 ```
 
 **3. Register in the root `pyproject.toml`**
