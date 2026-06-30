@@ -1,7 +1,6 @@
 """Filesystem extension — read, write, and patch files."""
 
-from domain import extension
-from domain import tool
+from inloop import contrib
 
 from filesystem import operations
 
@@ -14,7 +13,7 @@ def _run(fn, *args):
         return str(exc)
 
 
-read = tool.Tool(
+read = contrib.Tool(
     name="read",
     description=(
         "Read and return the full text content of a file given its path. "
@@ -31,7 +30,7 @@ read = tool.Tool(
     execute=lambda args: _run(operations.read, str(args["path"])),
 )
 
-write = tool.Tool(
+write = contrib.Tool(
     name="write",
     description=(
         "Write text content to a file, creating the file and any missing parent directories. "
@@ -49,7 +48,7 @@ write = tool.Tool(
     execute=lambda args: _run(operations.write, str(args["path"]), str(args["content"])),
 )
 
-patch = tool.Tool(
+patch = contrib.Tool(
     name="patch",
     description=(
         "Replace the first occurrence of a string in a file with new text. "
@@ -68,4 +67,4 @@ patch = tool.Tool(
     execute=lambda args: _run(operations.patch, str(args["path"]), str(args["old"]), str(args["new"])),
 )
 
-EXTENSION = extension.Extension(name="filesystem", tools=[read, write, patch])
+EXTENSION = contrib.Extension(name="filesystem", tools=[read, write, patch])

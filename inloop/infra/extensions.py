@@ -2,7 +2,7 @@
 
 from importlib.metadata import entry_points
 
-from domain import extension
+from inloop.domain import extension
 
 GROUP = "inloop.extensions"
 

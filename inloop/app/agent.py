@@ -2,12 +2,12 @@
 
 from collections.abc import AsyncIterator, Iterator, Sequence
 
-from app.conversation import Conversation
-from domain import message
-from domain.message import Message, Role
-from domain import model
-from domain import streaming
-from domain import extension
+from inloop.app.conversation import Conversation
+from inloop.domain import message
+from inloop.domain.message import Message, Role
+from inloop.domain import model
+from inloop.domain import streaming
+from inloop.domain import extension
 
 COMMANDS = frozenset({"/exit", "/quit"})
 

@@ -1,7 +1,7 @@
 """Tests for the conversation transcript."""
 
-from app import conversation
-from domain import message
+from inloop.app import conversation
+from inloop.domain import message
 
 
 def test_history_starts_empty() -> None:

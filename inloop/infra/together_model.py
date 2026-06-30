@@ -5,9 +5,9 @@ from collections.abc import Iterator, Sequence
 
 import together
 
-from domain import message
-from domain import streaming
-from domain import tool
+from inloop.domain import message
+from inloop.domain import streaming
+from inloop.domain import tool
 
 def _messages(msgs: Sequence[message.Message]) -> list[dict[str, object]]:
     """Render domain messages as Together/OpenAI chat messages."""

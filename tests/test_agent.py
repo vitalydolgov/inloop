@@ -3,11 +3,11 @@
 import asyncio
 from collections.abc import AsyncIterator, Iterator, Sequence
 
-from app import agent
-from domain import extension
-from domain import message
-from domain import streaming
-from domain import tool
+from inloop.app import agent
+from inloop.domain import extension
+from inloop.domain import message
+from inloop.domain import streaming
+from inloop.domain import tool
 
 
 class _ScriptedModel:

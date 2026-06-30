@@ -3,6 +3,8 @@
 import ast
 import operator
 
+from inloop import contrib
+
 _BINARY = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
@@ -32,10 +34,8 @@ def _evaluate(node: ast.expr) -> float:
             raise ValueError("unsupported expression")
 
 
-def execute(args: dict[str, object]) -> str:
+@contrib.rescue
+def evaluate(args: dict[str, object]) -> str:
     """Evaluate the requested arithmetic expression and return its result."""
     expression = str(args["expression"])
-    try:
-        return str(_evaluate(ast.parse(expression, mode="eval").body))
-    except (ValueError, SyntaxError, ZeroDivisionError) as error:
-        return f"error: {error}"
+    return str(_evaluate(ast.parse(expression, mode="eval").body))

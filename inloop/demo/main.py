@@ -4,9 +4,9 @@ import asyncio
 import sys
 from collections.abc import AsyncIterator
 
-from app.agent import Agent
-from domain import streaming
-from infra import extensions
+from inloop.app.agent import Agent
+from inloop.domain import streaming
+from inloop.infra import extensions
 
 async def stdin_lines() -> AsyncIterator[str]:
     """Yield lines from stdin without blocking the event loop."""
@@ -69,7 +69,7 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
 def main():
     """Start the interactive chat demo."""
     import anthropic
-    from infra import anthropic_model
+    from inloop.infra import anthropic_model
 
     model = anthropic_model.AnthropicModel(
         anthropic.Anthropic(),

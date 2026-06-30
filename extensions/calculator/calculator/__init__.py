@@ -1,11 +1,10 @@
 """A calculator tool the model can request to evaluate arithmetic."""
 
-from domain import extension
-from domain import tool
+from inloop import contrib
 
 from calculator import evaluate
 
-evaluate = tool.Tool(
+evaluate = contrib.Tool(
     name="evaluate",
     description="Evaluate a basic arithmetic expression and return the result.",
     parameters={
@@ -18,7 +17,7 @@ evaluate = tool.Tool(
         },
         "required": ["expression"],
     },
-    execute=evaluate.execute,
+    execute=evaluate.evaluate,
 )
 
-EXTENSION = extension.Extension(name="calculator", tools=[evaluate])
+EXTENSION = contrib.Extension(name="calculator", tools=[evaluate])

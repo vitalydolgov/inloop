@@ -3,7 +3,7 @@
 import copy
 from dataclasses import dataclass
 
-from domain import tool
+from inloop.domain import tool
 
 
 @dataclass

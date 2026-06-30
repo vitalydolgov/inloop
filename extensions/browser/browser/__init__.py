@@ -8,8 +8,7 @@ from pathlib import Path
 from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import async_playwright
 
-from domain import extension
-from domain import tool
+from inloop import contrib
 
 _PROFILE_DIR = Path(__file__).resolve().parents[1] / "var"
 _DEFAULT_TIMEOUT_MS = 15_000
@@ -109,7 +108,7 @@ async def _wait_for(selector: str, timeout_ms: int = _DEFAULT_TIMEOUT_MS) -> Non
     await _do(lambda page: page.locator(selector).first.wait_for(timeout=timeout_ms))
 
 
-navigate = tool.Tool(
+navigate = contrib.Tool(
     name="navigate",
     description=(
         "Navigate the browser to a URL and wait for DOM content to load. "
@@ -126,7 +125,7 @@ navigate = tool.Tool(
     execute=lambda args: _call(_navigate, args),
 )
 
-snapshot = tool.Tool(
+snapshot = contrib.Tool(
     name="snapshot",
     description=(
         "Return an accessibility-tree snapshot of the current page as YAML. "
@@ -136,7 +135,7 @@ snapshot = tool.Tool(
     execute=lambda args: _call(_snapshot, args),
 )
 
-click = tool.Tool(
+click = contrib.Tool(
     name="click",
     description="Click the first element matching a Playwright or CSS selector.",
     parameters={
@@ -149,7 +148,7 @@ click = tool.Tool(
     execute=lambda args: _call(_click, args),
 )
 
-fill = tool.Tool(
+fill = contrib.Tool(
     name="fill",
     description="Fill an input, textarea, or contenteditable element with text.",
     parameters={
@@ -163,7 +162,7 @@ fill = tool.Tool(
     execute=lambda args: _call(_fill, args),
 )
 
-press = tool.Tool(
+press = contrib.Tool(
     name="press",
     description="Simulate pressing a key or chord (e.g. 'Enter', 'Control+a') on an element.",
     parameters={
@@ -177,7 +176,7 @@ press = tool.Tool(
     execute=lambda args: _call(_press, args),
 )
 
-get_text = tool.Tool(
+get_text = contrib.Tool(
     name="get_text",
     description="Return the visible inner text of the first element matching the selector.",
     parameters={
@@ -190,14 +189,14 @@ get_text = tool.Tool(
     execute=lambda args: _call(_get_text, args),
 )
 
-current_url = tool.Tool(
+current_url = contrib.Tool(
     name="current_url",
     description="Return the URL of the page currently open in the browser.",
     parameters={"type": "object", "properties": {}},
     execute=lambda args: _call(_current_url, args),
 )
 
-wait_for = tool.Tool(
+wait_for = contrib.Tool(
     name="wait_for",
     description=(
         "Wait until the first element matching the selector appears in the DOM. "
@@ -214,7 +213,7 @@ wait_for = tool.Tool(
     execute=lambda args: _call(_wait_for, args),
 )
 
-EXTENSION = extension.Extension(
+EXTENSION = contrib.Extension(
     name="browser",
     tools=[navigate, snapshot, click, fill, press, get_text, current_url, wait_for],
 )

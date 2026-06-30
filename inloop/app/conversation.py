@@ -1,6 +1,6 @@
 """A multi-turn conversation transcript."""
 
-from domain.message import Message
+from inloop.domain.message import Message
 
 
 class Conversation:

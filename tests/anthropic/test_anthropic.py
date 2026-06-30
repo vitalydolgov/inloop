@@ -8,10 +8,10 @@ import pytest
 
 import calculator
 
-from app import agent
-from domain import extension
-from domain import streaming
-from infra import anthropic_model
+from inloop.app import agent
+from inloop.domain import extension
+from inloop.domain import streaming
+from inloop.infra import anthropic_model
 
 MODEL = "claude-haiku-4-5"
 

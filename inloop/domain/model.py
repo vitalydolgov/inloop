@@ -3,9 +3,9 @@
 from collections.abc import Iterator, Sequence
 from typing import Protocol
 
-from domain import message
-from domain import streaming
-from domain import tool
+from inloop.domain import message
+from inloop.domain import streaming
+from inloop.domain import tool
 
 
 class Model(Protocol):

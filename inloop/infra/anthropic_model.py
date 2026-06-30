@@ -4,9 +4,9 @@ from collections.abc import Iterator, Sequence
 
 import anthropic
 
-from domain import message
-from domain import streaming
-from domain import tool
+from inloop.domain import message
+from inloop.domain import streaming
+from inloop.domain import tool
 
 def _content(blocks: Sequence[message.Block]) -> list[dict[str, object]]:
     """Render domain content blocks as Anthropic message content."""
