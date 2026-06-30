@@ -1,4 +1,4 @@
-# InLoop
+# Inloop
 
 A hackable Python implementation of the agentic loop: a language model streams a conversation, calls tools, and acts on their results. Add your own tools via extensions.
 
@@ -54,6 +54,7 @@ An extension is a named bundle of tools that the agent can call. Each is a self-
 ### External extensions
 
 - [`ios-simulator`](https://github.com/vitalydolgov/ios-simulator-inloop) — drives an iOS simulator through Appium
+- [`newsfeed`](https://github.com/vitalydolgov/newsfeed-inloop) — reads tech news from RSS feeds
 
 ## Example
 

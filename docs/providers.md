@@ -15,7 +15,7 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 
 ```python
 import anthropic
-from infra.anthropic_model import AnthropicModel
+from inloop.infra.anthropic_model import AnthropicModel
 
 model = AnthropicModel(
     anthropic.Anthropic(),
@@ -34,7 +34,7 @@ export TOGETHER_API_KEY="..."
 
 ```python
 import together
-from infra.together_model import TogetherModel
+from inloop.infra.together_model import TogetherModel
 
 model = TogetherModel(
     together.Together(),
