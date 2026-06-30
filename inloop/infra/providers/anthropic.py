@@ -77,15 +77,23 @@ class AnthropicModel:
 
         text_parts: list[str] = []
         in_thinking_block = False
+        in_text_block = False
         with self._client.messages.stream(**kwargs) as stream:
             for event in stream:
                 if event.type == "content_block_start":
                     if event.content_block.type == "thinking":
                         in_thinking_block = True
                         yield streaming.ThinkingPhase.STARTED
-                elif event.type == "content_block_stop" and in_thinking_block:
-                    in_thinking_block = False
-                    yield streaming.ThinkingPhase.ENDED
+                    elif event.content_block.type == "text":
+                        in_text_block = True
+                        yield streaming.TextPhase.STARTED
+                elif event.type == "content_block_stop":
+                    if in_thinking_block:
+                        in_thinking_block = False
+                        yield streaming.ThinkingPhase.ENDED
+                    elif in_text_block:
+                        in_text_block = False
+                        yield streaming.TextPhase.ENDED
                 elif event.type == "content_block_delta":
                     if event.delta.type == "thinking_delta":
                         yield streaming.ThinkingDelta(event.delta.thinking)

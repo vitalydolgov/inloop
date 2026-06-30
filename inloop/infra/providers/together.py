@@ -107,6 +107,7 @@ class TogetherModel:
         text_parts: list[str] = []
         finish_reason: str | None = None
         in_thinking = False
+        in_text = False
 
         for chunk in self._client.chat.completions.create(**kwargs):
             choice = chunk.choices[0] if chunk.choices else None
@@ -117,6 +118,9 @@ class TogetherModel:
 
             delta = choice.delta
             if delta.reasoning:
+                if in_text:
+                    in_text = False
+                    yield streaming.TextPhase.ENDED
                 if not in_thinking:
                     in_thinking = True
                     yield streaming.ThinkingPhase.STARTED
@@ -126,6 +130,9 @@ class TogetherModel:
                 if in_thinking:
                     in_thinking = False
                     yield streaming.ThinkingPhase.ENDED
+                if not in_text:
+                    in_text = True
+                    yield streaming.TextPhase.STARTED
                 text_parts.append(delta.content)
                 yield streaming.TextDelta(delta.content)
 
@@ -142,6 +149,8 @@ class TogetherModel:
 
         if in_thinking:
             yield streaming.ThinkingPhase.ENDED
+        if in_text:
+            yield streaming.TextPhase.ENDED
 
         for tc_data in tool_accum.values():
             yield streaming.ToolUse(

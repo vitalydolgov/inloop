@@ -11,7 +11,7 @@ import calculator
 from inloop.app import agent
 from inloop.domain import extension
 from inloop.domain import streaming
-from inloop.infra import anthropic_model
+from inloop.infra.providers import anthropic
 
 MODEL = "claude-haiku-4-5"
 
@@ -40,7 +40,7 @@ def _final_text(events: Iterable[streaming.Event]) -> str:
 
 def _agent(extensions: list[extension.Extension] = []) -> agent.Agent:
     client = anthropic.Anthropic()
-    model = anthropic_model.AnthropicModel(client, model=MODEL, max_tokens=1024)
+    model = anthropic.AnthropicModel(client, model=MODEL, max_tokens=1024)
     return agent.Agent(model, extensions=extensions)
 
 

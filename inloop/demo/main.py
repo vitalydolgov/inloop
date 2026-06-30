@@ -95,13 +95,13 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
 def main():
     """Start the interactive chat demo."""
     import anthropic
-    from inloop.infra import anthropic_model
+    from inloop.infra import providers
 
-    model = anthropic_model.AnthropicModel(
+    model = providers.anthropic.AnthropicModel(
         anthropic.Anthropic(),
-        model="claude-sonnet-4-6",
+        model="claude-sonnet-5",
         max_tokens=64_000,
-        effort="high"
+        effort="low"
     )
     agent = Agent(model, extensions=extensions.load())
     events = agent.events(user_input())
