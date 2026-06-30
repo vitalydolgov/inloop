@@ -71,7 +71,7 @@ It is a concrete adapter, so it lives in `infra/providers/` (e.g. `infra/provide
 **3. Backend stream → `streaming.Event`s.** Consume the backend's streamed chunks and yield domain events in order:
 
 - `ThinkingPhase.STARTED` / `ThinkingDelta` / `ThinkingPhase.ENDED` — wrap reasoning output, if the backend exposes it.
-- `TextDelta` — each chunk of visible answer text.
+- `TextPhase.STARTED` / `TextDelta` / `TextPhase.ENDED` — wrap each chunk of visible answer text.
 - `ToolUse(id, name, input)` — one per requested tool call, with `input` decoded to a `dict` (accumulate streamed argument fragments first).
 - `MessageCompleted(text, stop_reason)` — emit exactly once, last, with the full concatenated text and the backend's stop reason.
 

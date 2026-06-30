@@ -5,6 +5,7 @@ import json
 import readline  # noqa: F401
 import sys
 from collections.abc import AsyncIterator
+from pathlib import Path
 
 import rich.console
 import rich.live
@@ -16,6 +17,7 @@ from rich.text import Text
 from inloop.app.agent import Agent
 from inloop.domain import streaming
 from inloop.infra import extensions
+from inloop.infra.plain_logger import PlainLogger
 
 console = rich.console.Console()
 
@@ -103,6 +105,7 @@ def main():
         max_tokens=64_000,
         effort="low"
     )
-    agent = Agent(model, extensions=extensions.load())
+    logger = PlainLogger(Path("var/log"))
+    agent = Agent(model, extensions=extensions.load(), logger=logger)
     events = agent.events(user_input())
     asyncio.run(render(events))

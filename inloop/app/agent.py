@@ -3,6 +3,7 @@
 from collections.abc import AsyncIterator, Iterator, Sequence
 
 from inloop.app.conversation import Conversation
+from inloop.app import log
 from inloop.domain import message
 from inloop.domain.message import Message, Role
 from inloop.domain import model
@@ -19,11 +20,13 @@ class Agent:
         self,
         language_model: model.Model,
         extensions: Sequence[extension.Extension] = (),
+        logger: log.Logger | None = None,
     ) -> None:
         self._model = language_model
         self._tools = {}
         for ext in extensions:
             self._tools.update(ext.tools_by_name())
+        self._logger = logger
         self.conversation = Conversation()
         """The conversation transcript owned by this agent."""
 
@@ -35,19 +38,24 @@ class Agent:
             if user_text in COMMANDS:
                 return
 
+            self._log(log.UserMessage(user_text))
             self.conversation.add(Message(Role.USER, [message.Text(user_text)]))
 
             for event in self._agent_turn():
                 yield event
 
+    def _log(self, entry: log.Entry) -> None:
+        if self._logger:
+            self._logger.log(entry)
+
     def _agent_turn(self) -> Iterator[streaming.Event]:
-        """Stream one assistant turn, running tools until the model finishes."""
         while True:
             calls: list[message.ToolCall] = []
             texts: list[message.Text] = []
 
             tools = list(self._tools.values())
             for event in self._model.stream(self.conversation.history, tools):
+                self._log(event)
                 match event:
                     case streaming.ToolUse():
                         call = message.ToolCall(event.id, event.name, event.input)
@@ -59,7 +67,9 @@ class Agent:
             results = []
             for call in calls:
                 tool = self._tools[call.name]
-                results.append(message.ToolResult(call.id, tool.execute(call.input)))
+                content = tool.execute(call.input)
+                self._log(log.ToolResult(call, content))
+                results.append(message.ToolResult(call.id, content))
 
             assistant_blocks: list[message.Block] = [*texts, *calls]
             if assistant_blocks:

@@ -18,6 +18,13 @@ class ThinkingDelta:
     text: str
 
 
+class TextPhase(Enum):
+    """A boundary marker for the model's visible text phase."""
+
+    STARTED = "started"
+    ENDED = "ended"
+
+
 @dataclass(frozen=True)
 class TextDelta:
     """A chunk of generated text."""
@@ -42,4 +49,6 @@ class MessageCompleted:
     stop_reason: str | None
 
 
-Event = ThinkingPhase | ThinkingDelta | TextDelta | ToolUse | MessageCompleted
+Event = (
+    ThinkingPhase | ThinkingDelta | TextPhase | TextDelta | ToolUse | MessageCompleted
+)

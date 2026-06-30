@@ -15,6 +15,7 @@ Dependency rules:
 ## Python conventions
 
 - Docstrings should describe what something does or what it is — not how it works or what its parameters are.
+- Do not document helper functions.
 - Import modules directly — do not use `__init__.py` to re-export or aggregate imports.
 - When returning a sequence, always use a list — never a tuple.
 
@@ -24,5 +25,5 @@ Dependency rules:
 
 ## Documentation
 
-- Do not reference `CLAUDE.md` while writing documentation.
-- Keep documentation abstract: describe conventions, patterns, and the reasoning behind them — not specific files, filenames, or one-off instances.
+- Write documentation that stands alone — don't cite or assume CLAUDE.md.
+- Omit what the reader already knows — from the code (signatures, formats, behavior) or from domain familiarity. Point to the implementation instead of restating it.

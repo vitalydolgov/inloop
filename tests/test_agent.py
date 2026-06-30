@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import AsyncIterator, Iterator, Sequence
 
 from inloop.app import agent
+from inloop.app import log
 from inloop.domain import extension
 from inloop.domain import message
 from inloop.domain import streaming
@@ -243,6 +244,64 @@ def test_command_stops_without_recording_it() -> None:
     assert chat_agent.conversation.history == [
         message.Message(message.Role.USER, [message.Text("hello")]),
         message.Message(message.Role.ASSISTANT, [message.Text("hi there")]),
+    ]
+
+
+class _RecordingLogger:
+    """A Logger that records every entry it's given."""
+
+    def __init__(self) -> None:
+        self.entries: list[log.Entry] = []
+
+    def log(self, entry: log.Entry) -> None:
+        self.entries.append(entry)
+
+
+def test_logs_user_input_model_output_and_tool_results() -> None:
+    ran = lambda args: "4"
+    adder = tool.Tool("add", "Add two numbers.", {}, ran)
+
+    class _ToolThenAnswer:
+        def __init__(self) -> None:
+            self._turn = 0
+
+        def stream(
+            self,
+            messages: Sequence[message.Message],
+            tools: Sequence[tool.Tool] = (),
+        ) -> Iterator[streaming.Event]:
+            self._turn += 1
+            if self._turn == 1:
+                yield streaming.ThinkingDelta("thinking about it")
+                yield streaming.ToolUse(id="t1", name="test__add", input={"a": 2, "b": 2})
+                yield streaming.MessageCompleted(text="", stop_reason="tool_use")
+            else:
+                yield streaming.TextDelta("the sum is 4")
+                yield streaming.MessageCompleted(
+                    text="the sum is 4", stop_reason="end_turn"
+                )
+
+    recorder = _RecordingLogger()
+    chat_agent = agent.Agent(
+        _ToolThenAnswer(),
+        extensions=[extension.Extension("test", [adder])],
+        logger=recorder,
+    )
+
+    async def gather() -> None:
+        async for _ in chat_agent.events(_stream(["add 2 and 2"])):
+            pass
+
+    asyncio.run(gather())
+
+    assert recorder.entries == [
+        log.UserMessage("add 2 and 2"),
+        streaming.ThinkingDelta("thinking about it"),
+        streaming.ToolUse(id="t1", name="test__add", input={"a": 2, "b": 2}),
+        streaming.MessageCompleted(text="", stop_reason="tool_use"),
+        log.ToolResult(message.ToolCall("t1", "test__add", {"a": 2, "b": 2}), "4"),
+        streaming.TextDelta("the sum is 4"),
+        streaming.MessageCompleted(text="the sum is 4", stop_reason="end_turn"),
     ]
 
 

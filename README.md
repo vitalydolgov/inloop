@@ -102,4 +102,5 @@ uv run demo
 
 - [Extensions](docs/extensions.md) — how to create and install extensions
 - [Providers](docs/providers.md) — supported LLM backends, how to configure them, and how to write your own
+- [Logging](docs/logging.md) — recording user input, model output, and tool calls
 - [Testing](docs/testing.md) — test layout, how to run tests, and what gets covered
