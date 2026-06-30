@@ -40,7 +40,8 @@ def _final_text(events: Iterable[streaming.Event]) -> str:
 
 def _agent(extensions: list[extension.Extension] = []) -> agent.Agent:
     client = anthropic.Anthropic()
-    return agent.Agent(anthropic_model.AnthropicModel(client, model=MODEL), extensions=extensions)
+    model = anthropic_model.AnthropicModel(client, model=MODEL, max_tokens=1024)
+    return agent.Agent(model, extensions=extensions)
 
 
 def test_answers_a_factual_question() -> None:
@@ -69,5 +70,5 @@ def test_runs_the_calculator_tool() -> None:
     events = _run(chat, ["What is 2 + 2 * 3? Use the calculator tool."])
 
     tool_uses = [e for e in events if isinstance(e, streaming.ToolUse)]
-    assert any(use.name == "calculator" for use in tool_uses)
+    assert any(use.name == "calculator__evaluate" for use in tool_uses)
     assert "8" in _final_text(events)

@@ -21,3 +21,8 @@ Dependency rules:
 ## Testing
 
 - Write tests only for `domain` and `app`, do not test `infra` unless explicitly requested.
+
+## Documentation
+
+- Do not reference `CLAUDE.md` while writing documentation.
+- Keep documentation abstract: describe conventions, patterns, and the reasoning behind them — not specific files, filenames, or one-off instances.
