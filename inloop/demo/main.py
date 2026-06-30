@@ -63,6 +63,17 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
     """Present reply events as the app layer streams them."""
     live = rich.live.Live(console=console, refresh_per_second=20)
     text_buffer = ""
+    at_bol = True
+    at_blank_line = True
+
+    def separate() -> None:
+        nonlocal at_bol, at_blank_line
+        if not at_bol:
+            console.print()
+        if not at_blank_line:
+            console.print()
+        at_bol = True
+        at_blank_line = True
 
     async for event in events:
         match event:
@@ -71,27 +82,36 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
 
             case streaming.ThinkingDelta(text):
                 console.print(Text(text, style="italic dim"), end="")
+                if text:
+                    at_bol = text.endswith("\n")
+                    at_blank_line = False
 
             case streaming.ThinkingPhase.ENDED:
-                console.print()
-                console.print()
+                separate()
+
+            case streaming.TextPhase.STARTED:
+                text_buffer = ""
+                live.start()
 
             case streaming.TextDelta(delta):
-                if not live.is_started:
-                    text_buffer = ""
-                    live.start()
                 text_buffer += delta
                 live.update(Markdown(text_buffer))
 
+            case streaming.TextPhase.ENDED:
+                live.stop()
+                at_bol = True
+                at_blank_line = not text_buffer
+                separate()
+
             case streaming.ToolUse(_, name, tool_input):
                 live.stop()
-                console.print(f"[dim cyan]{name}[/dim cyan] {json.dumps(tool_input)}")
+                console.print(f"[dim cyan]⛭ {name} {json.dumps(tool_input)}[/dim cyan]")
+                at_bol = True
+                at_blank_line = False
 
             case streaming.MessageCompleted(_, stop_reason):
                 live.stop()
-                if stop_reason and stop_reason not in ("end_turn", "tool_use"):
-                    console.print(f"[dim]({stop_reason})[/dim]")
-                console.print()
+                separate()
 
 
 def main():

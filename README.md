@@ -66,11 +66,9 @@ Running against Gemma 4 31B:
 The user wants to calculate the sum of 40 and 2.
 I should use the calculator__evaluate tool to perform this arithmetic operation.
 
-calculator__evaluate {'expression': '40+2'}
-(tool_calls)
+⛭ calculator__evaluate {'expression': '40+2'}
 
 40 + 2 = 42
-(stop)
 ```
 
 ## Setup
