@@ -7,7 +7,7 @@ authors = [
     { name = "Vitaly Dolgov", email = "vitaly.dolgov@posteo.net" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = ["rich>=13.0.0"]
 
 [project.optional-dependencies]
 anthropic = ["anthropic>=0.112.0"]

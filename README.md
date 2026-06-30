@@ -61,16 +61,16 @@ An extension is a named bundle of tools that the agent can call. Each is a self-
 Running against Gemma 4 31B:
 
 ```
-% uv run demo
 > calculate 40+2
-[think...]
+
 The user wants to calculate the sum of 40 and 2.
 I should use the calculator__evaluate tool to perform this arithmetic operation.
-[...think]
-[tool: calculator__evaluate {'expression': '40+2'}]
-[done: tool_calls]
+
+calculator__evaluate {'expression': '40+2'}
+(tool_calls)
+
 40 + 2 = 42
-[done: stop]
+(stop)
 ```
 
 ## Setup

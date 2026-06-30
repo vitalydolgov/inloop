@@ -273,6 +273,9 @@ wheels = [
 name = "inloop"
 version = "0.1.0"
 source = { editable = "." }
+dependencies = [
+    { name = "rich" },
+]
 
 [package.optional-dependencies]
 anthropic = [
@@ -295,6 +298,7 @@ extensions = [
 [package.metadata]
 requires-dist = [
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.112.0" },
+    { name = "rich", specifier = ">=13.0.0" },
     { name = "together", marker = "extra == 'together'", specifier = ">=2.19.0" },
 ]
 provides-extras = ["anthropic", "together"]
