@@ -26,13 +26,10 @@ demo = "inloop.demo.main:main"
 [tool.uv]
 default-groups = "all"
 
-[tool.uv.workspace]
-members = ["extensions/*"]
-
 [tool.uv.sources]
-browser = { workspace = true }
-calculator = { workspace = true }
-filesystem = { workspace = true }
+browser = { path = "extensions/browser", editable = true }
+calculator = { path = "extensions/calculator", editable = true }
+filesystem = { path = "extensions/filesystem", editable = true }
 
 [dependency-groups]
 dev = [

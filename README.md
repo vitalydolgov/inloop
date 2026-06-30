@@ -43,7 +43,7 @@ Around the loop sit the harness capabilities — each a seam where the harness e
 
 ## Extensions
 
-An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled under `extensions/` or living in its own repo — that exposes an `EXTENSION` value describing its tools. Installed extensions are discovered automatically. See [docs/extensions.md](docs/extensions.md) for how to create and install one.
+An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule under `extensions/`, or living in its own repo — that exposes an `EXTENSION` value describing its tools. Installed extensions are discovered automatically. See [docs/extensions.md](docs/extensions.md) for how to create and install one.
 
 ### Built-in extensions
 
@@ -74,7 +74,13 @@ I should use the calculator__evaluate tool to perform this arithmetic operation.
 
 ## Setup
 
-Install the provider extras, export the matching API key, then run the demo.
+Fetch the bundled extensions, which live in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule:
+
+```sh
+git submodule update --init
+```
+
+Then install the provider extras, export the matching API key, and run the demo.
 
 Install every provider extra:
 

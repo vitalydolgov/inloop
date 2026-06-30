@@ -1,6 +1,6 @@
 # Extensions
 
-Each extension is an installable package that exposes an `EXTENSION` value and declares an `inloop.extensions` entry point. The loader discovers every installed package registered under that group — no manifest file required. Bundled extensions live under `extensions/` as uv workspace members; external extensions live in their own repo and are installed by path or git url.
+Each extension is an installable package that exposes an `EXTENSION` value and declares an `inloop.extensions` entry point. The loader discovers every installed package registered under that group — no manifest file required. Bundled extensions live in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule at `extensions/`; external extensions live in their own repo. Both are registered the same way — an entry in the `extensions` group.
 
 ## Installing an external extension
 
@@ -24,67 +24,6 @@ uv remove --group extensions <extension>
 ```
 
 This removes the package from `pyproject.toml` and uninstalls it. Since discovery is entry-point-based, the extension stops being loaded immediately — nothing else to clean up.
-
-## Adding a bundled extension
-
-**1. Create `extensions/<extension>/pyproject.toml`**
-
-```toml
-[project]
-name = "<extension>"
-...
-dependencies = ["inloop"]
-
-[project.entry-points."inloop.extensions"]
-<extension> = "<module>:EXTENSION"
-
-[build-system]  # required — uv won't install the extension without it; any PEP 517 backend works
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.uv.sources]
-inloop = { workspace = true }  # resolve from the local workspace, not PyPI
-```
-
-**2. Create `extensions/<extension>/<module>/__init__.py`**
-
-`__init__.py` is the entry point and must export `EXTENSION`.
-
-```python
-from inloop import contrib
-
-@contrib.tool(
-    name="<name>",
-    description="What this tool does.",
-    parameters={"type": "object", "properties": {...}, "required": [...]},
-)
-def my_tool(args: dict[str, object]) -> str:
-    return "result"
-
-EXTENSION = contrib.Extension(name="<extension>", tools=[my_tool])
-```
-
-**3. Register in the root `pyproject.toml`**
-
-```toml
-[tool.uv.sources]
-<extension> = { workspace = true }  # resolve from the local workspace, not PyPI
-
-[dependency-groups]
-extensions = ["<extension>"]  # uv won't install a workspace member unless it appears as a dependency
-```
-
-**4. Sync**
-
-```sh
-uv sync
-```
-
-## Removing a bundled extension
-
-1. Delete `extensions/<extension>/`
-2. Remove `<extension>` from `[dependency-groups] extensions` and `[tool.uv.sources]` in the root `pyproject.toml`
-3. Run `uv sync`
 
 ## Adding a testing CLI
 

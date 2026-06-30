@@ -1,12 +1,8 @@
 # Python
-*.egg-info
+.venv
 __pycache__/
 .pytest_cache
-.venv
+*.egg-info/
 
 # OS
 .DS_Store
-
-# Application
-.env
-var/
