@@ -86,6 +86,23 @@ uv sync
 2. Remove `<extension>` from `[dependency-groups] extensions` and `[tool.uv.sources]` in the root `pyproject.toml`
 3. Run `uv sync`
 
+## Adding a testing CLI
+
+Create `<module>/__main__.py` to test tools without starting the agent:
+
+```python
+from inloop import contrib
+
+if __name__ == "__main__":
+    contrib.program()()
+```
+
+```sh
+uv run python -m <module> <tool_name> [key=value ...]
+```
+
+`key=value` pairs are parsed into a dict; integers are cast automatically (`page=2` → `{"page": 2}`).
+
 ## Tool descriptions
 
 The `description=` field on `tool.Tool` is the only thing the model reads when deciding whether to call a tool — it is consumed by an AI, not a human, so every word should signal capability, trigger, or boundary. Write it as three sentences:

@@ -1,6 +1,7 @@
 """Shared API for extensions."""
 
-from inloop.domain.extension import Extension
+from inloop.contrib.program import program
 from inloop.contrib.tool import tool
+from inloop.domain.extension import Extension
 
-__all__ = ["Extension", "tool"]
+__all__ = ["Extension", "program", "tool"]
