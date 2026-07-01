@@ -1,6 +1,6 @@
 # Extensions
 
-Each extension is an installable package that exposes an `EXTENSION` value and declares an `inloop.extensions` entry point. The loader discovers every installed package registered under that group. Bundled extensions live in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule at `extensions/` and are installed via the `extensions` uv dependency group. External extensions live in their own repo and are installed into local storage under `var/extensions/`, without touching this project's `pyproject.toml`. Both are discovered the same way — via the `inloop.extensions` entry point.
+Each extension is an installable package that exposes an `EXTENSION` value and declares an `inloop.extensions` entry point. The loader discovers every installed package registered under that group. Bundled extensions live in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule at `extensions/` and are installed via the `bundled_extensions` uv dependency group. External extensions live in their own repo and are installed into local storage.
 
 ## Creating an extension
 
@@ -109,7 +109,9 @@ uv run extensions install "git+https://github.com/<you>/<extension>"
 uv run extensions install "git+https://github.com/<you>/<extension>@v0.1.0"
 ```
 
-This resolves the package and its dependencies into its own directory under `var/extensions/`, recording its source in `var/extensions/registry.json`. The extension is picked up automatically on next run.
+This resolves the package and its dependencies into its own directory, recording its source in a registry file alongside it. A path source is installed editable — it keeps importing directly from that directory, so source edits take effect the next time this project runs, no reinstall needed. A git source is copied at the resolved revision.
+
+Extensions are stored under `var/extensions/` by default; set `EXTENSIONS_PATH` in `.env` (see `.env.example`) to use a different location.
 
 ## Removing an extension
 

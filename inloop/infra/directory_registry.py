@@ -2,8 +2,8 @@
 
 import json
 import shutil
+import site
 import subprocess
-import sys
 import tempfile
 from importlib.metadata import PathDistribution, entry_points
 from pathlib import Path
@@ -21,15 +21,17 @@ class DirectoryExtensionRegistry:
         self._registry_path = root / "registry.json"
 
     def install(self, source: str) -> str:
-        """Install an extension from a path or git url and return its package name."""
+        """Install an extension from a path or git url and return its package name; path sources stay linked live."""
+        editable = Path(source).expanduser().exists()
+
         self._root.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=self._root) as staging:
-            self._pip_install(Path(staging), source, deps=False)
+            self._pip_install(Path(staging), source, deps=False, editable=editable)
             name = self._installed_name(Path(staging))
 
         target = self._root / name
         shutil.rmtree(target, ignore_errors=True)
-        self._pip_install(target, source, deps=True)
+        self._pip_install(target, source, deps=True, editable=editable)
 
         registry = self._read_registry()
         registry[name] = source
@@ -54,7 +56,7 @@ class DirectoryExtensionRegistry:
     def load(self) -> list[extension.Extension]:
         """Load every installed extension registered in the inloop.extensions group."""
         for path in self.paths():
-            sys.path.insert(0, str(path))
+            site.addsitedir(str(path))
         return [ep.load() for ep in entry_points(group=GROUP)]
 
     def _read_registry(self) -> dict[str, str]:
@@ -65,10 +67,13 @@ class DirectoryExtensionRegistry:
     def _write_registry(self, registry: dict[str, str]) -> None:
         self._registry_path.write_text(json.dumps(registry, indent=2, sort_keys=True))
 
-    def _pip_install(self, target: Path, source: str, *, deps: bool) -> None:
-        args = ["uv", "pip", "install", "--target", str(target), source]
+    def _pip_install(self, target: Path, source: str, *, deps: bool, editable: bool) -> None:
+        args = ["uv", "pip", "install", "--target", str(target)]
         if not deps:
             args.append("--no-deps")
+        if editable:
+            args.append("--editable")
+        args.append(source)
         subprocess.run(args, check=True)
 
     def _installed_name(self, target: Path) -> str:
