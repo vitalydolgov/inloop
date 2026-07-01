@@ -41,24 +41,14 @@ Around the loop sit the harness capabilities — each a seam where the harness e
 - **Security & Governance** — the limits on what an action may do: permissions, sandboxing, audit, approval.
 - **Memory** — state that outlives a single turn or session: transcripts, profiles, caches.
 
-## Extensions
+## Chat interface
 
-An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule under `extensions/`, or living in its own repo — that exposes an `EXTENSION` value describing its tools. Installed extensions are discovered automatically. Writing one means declaring tools with `inloop.contrib` and can be tried out with `uv run probe`, without starting the agent. See [docs/extensions.md](docs/extensions.md) for how to create and install one.
+Two ways to talk to the agent:
 
-### Built-in extensions
+- **CLI** (`uv run demo`) — an interactive terminal chat that streams each reply live as the model generates it.
+- **Telegram** (`uv run telegram-demo`) — a bot served over a webhook, restricted to a single Telegram user. See [docs/telegram.md](docs/telegram.md).
 
-- `calculator` — evaluates arithmetic expressions (a minimal example extension)
-- `browser` — drives a Chrome browser for web automation
-- `filesystem` — reads, writes, and patches files on disk
-
-### External extensions
-
-- [`ios-simulator`](https://github.com/vitalydolgov/ios-simulator-inloop) — drives an iOS simulator through Appium
-- [`newsfeed`](https://github.com/vitalydolgov/newsfeed-inloop) — reads tech news from RSS feeds
-
-## Example
-
-Running against Gemma 4 31B:
+Running the CLI against Gemma 4 31B:
 
 ```
 > calculate 40+2
@@ -70,6 +60,21 @@ I should use the calculator__evaluate tool to perform this arithmetic operation.
 
 40 + 2 = 42
 ```
+
+## Extensions
+
+An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule under `extensions/`, or living in its own repo — that exposes an `EXTENSION` value describing its tools. Installed extensions are discovered automatically. Writing one means declaring tools with `inloop.contrib` and can be tried out with `uv run probe`, without starting the agent. See [docs/extensions.md](docs/extensions.md) for how to create and install one.
+
+### Bundled extensions
+
+- `calculator` — evaluates arithmetic expressions (a minimal example extension)
+- `browser` — drives a Chrome browser for web automation
+- `filesystem` — reads, writes, and patches files on disk
+
+### External extensions
+
+- [`ios-simulator`](https://github.com/vitalydolgov/ios-simulator-inloop) — drives an iOS simulator through Appium
+- [`newsfeed`](https://github.com/vitalydolgov/newsfeed-inloop) — reads vtech news from multiple sources — Hacker News, etc. — each as its own feed
 
 ## Setup
 
@@ -85,13 +90,12 @@ I should use the calculator__evaluate tool to perform this arithmetic operation.
    cp .env.example .env
    ```
 
-3. Install the provider groups, export the matching API key, and run the demo.
+3. Install the provider groups and export the matching API key.
 
    Install every provider:
 
    ```sh
    uv sync --all-groups
-   uv run demo
    ```
 
    Or install just one provider — for example, Anthropic:
@@ -99,6 +103,11 @@ I should use the calculator__evaluate tool to perform this arithmetic operation.
    ```sh
    uv sync --group anthropic
    export ANTHROPIC_API_KEY=...
+   ```
+
+4. Run the demo:
+
+   ```sh
    uv run demo
    ```
 
@@ -110,3 +119,4 @@ I should use the calculator__evaluate tool to perform this arithmetic operation.
 - [Ports and adapters](docs/hexagonal.md) — the ports connecting domain and app to their implementations
 - [Logging](docs/logging.md) — recording user input, model output, and tool calls
 - [Testing](docs/testing.md) — test layout, how to run tests, and what gets covered
+- [Telegram](docs/telegram.md) — running the agent as a Telegram bot

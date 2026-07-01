@@ -20,6 +20,7 @@ packages = ["inloop"]
 
 [project.scripts]
 demo = "inloop.demo.main:main"
+telegram-demo = "inloop.demo.telegram.main:main"
 extensions = "inloop.cmd.extensions:main"
 probe = "inloop.cmd.probe:main"
 
@@ -40,6 +41,10 @@ bundled_extensions = [
     "browser",
     "calculator",
     "filesystem",
+]
+telegram = [
+    "aiohttp>=3.9",
+    "markdown-it-py>=3.0",
 ]
 anthropic = ["anthropic>=0.112.0"]
 together = ["together>=2.19.0"]
