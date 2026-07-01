@@ -10,13 +10,14 @@ from pathlib import Path
 import rich.console
 import rich.live
 from rich.markdown import Markdown
-from rich.box import Box
 from rich.panel import Panel
 from rich.text import Text
 
 from inloop.app.agent import Agent
 from inloop.domain import streaming
-from inloop.infra import extensions
+
+from inloop.infra.env_config import EnvConfig
+from inloop.infra.directory_registry import DirectoryExtensionRegistry
 from inloop.infra.plain_logger import PlainLogger
 
 console = rich.console.Console()
@@ -125,7 +126,9 @@ def main():
         max_tokens=64_000,
         effort="low"
     )
+    config = EnvConfig()
+    registry = DirectoryExtensionRegistry(config.extensions_path())
     logger = PlainLogger(Path("var/log"))
-    agent = Agent(model, extensions=extensions.load(), logger=logger)
+    agent = Agent(model, extensions=registry.load(), logger=logger)
     events = agent.events(user_input())
     asyncio.run(render(events))

@@ -1,6 +1,6 @@
 # Extensions
 
-Each extension is an installable package that exposes an `EXTENSION` value and declares an `inloop.extensions` entry point. The loader discovers every installed package registered under that group — no manifest file required. Bundled extensions live in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule at `extensions/`; external extensions live in their own repo. Both are registered the same way — an entry in the `extensions` group.
+Each extension is an installable package that exposes an `EXTENSION` value and declares an `inloop.extensions` entry point. The loader discovers every installed package registered under that group. Bundled extensions live in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule at `extensions/` and are installed via the `extensions` uv dependency group. External extensions live in their own repo and are installed into local storage under `var/extensions/`, without touching this project's `pyproject.toml`. Both are discovered the same way — via the `inloop.extensions` entry point.
 
 ## Creating an extension
 
@@ -85,9 +85,10 @@ Create `<module>/__main__.py` to test tools without starting the agent:
 
 ```python
 from inloop import contrib
+from greeter import EXTENSION
 
 if __name__ == "__main__":
-    contrib.program()()
+    contrib.program(EXTENSION)()
 ```
 
 ```sh
@@ -98,23 +99,28 @@ uv run python -m <module> <tool_name> [key=value ...]
 
 ## Installing an extension
 
-An extension developed in its own repo only needs to be installed into this project's environment. Use native uv to install from a path or git url:
+An extension developed in its own repo can be installed from a path or git url, without touching this project's `pyproject.toml`:
 
 ```sh
-# by path (use --editable while co-developing both repos)
-uv add --group extensions --editable ../<extension>
+uv run extensions install ../<extension>
 
 # by git url (optionally pin a branch/tag/commit)
-uv add --group extensions "git+https://github.com/<you>/<extension>"
-uv add --group extensions "git+https://github.com/<you>/<extension>@v0.1.0"
+uv run extensions install "git+https://github.com/<you>/<extension>"
+uv run extensions install "git+https://github.com/<you>/<extension>@v0.1.0"
 ```
 
-This records the package under the `extensions` dependency group plus a matching `[tool.uv.sources]` entry in the root `pyproject.toml`. The extension is picked up automatically on next run.
+This resolves the package and its dependencies into its own directory under `var/extensions/`, recording its source in `var/extensions/registry.json`. The extension is picked up automatically on next run.
 
 ## Removing an extension
 
 ```sh
-uv remove --group extensions <extension>
+uv run extensions uninstall <name>
 ```
 
-This removes the package from `pyproject.toml` and uninstalls it. Since discovery is entry-point-based, the extension stops being loaded immediately — nothing else to clean up.
+This deletes the extension's directory and its registry entry. Since discovery is entry-point-based, the extension stops being loaded immediately — nothing else to clean up.
+
+## Listing installed extensions
+
+```sh
+uv run extensions list
+```

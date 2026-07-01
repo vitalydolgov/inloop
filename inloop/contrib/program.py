@@ -2,17 +2,9 @@
 
 import sys
 from collections.abc import Callable
+
+from inloop.domain.extension import Extension
 from inloop.domain.tool import Tool
-from inloop.infra.extensions import load
-
-
-def _load_tools() -> dict[str, Tool]:
-    """Return all tools from every installed extension, keyed by tool name."""
-    tools: dict[str, Tool] = {}
-    for ext in load():
-        for t in ext.tools:
-            tools[t.name] = t
-    return tools
 
 
 def _parse_args(pairs: list[str]) -> dict[str, object]:
@@ -39,15 +31,17 @@ def _run_tool(tools: dict[str, Tool], tool_name: str, pairs: list[str]) -> str:
     return tools[tool_name].execute(_parse_args(pairs))
 
 
-def program() -> Callable[[], None]:
-    """Return a main() function for an extension CLI."""
+def program(extension: Extension) -> Callable[[], None]:
+    """Return a main() function for the given extension's tool CLI."""
+    tools = {t.name: t for t in extension.tools}
+
     def main() -> None:
         argv = sys.argv[1:]
         if not argv:
             print(f"Usage: <tool_name> [key=value ...]", file=sys.stderr)
             sys.exit(1)
         try:
-            print(_run_tool(_load_tools(), argv[0], argv[1:]))
+            print(_run_tool(tools, argv[0], argv[1:]))
         except KeyError as e:
             print(e, file=sys.stderr)
             sys.exit(1)

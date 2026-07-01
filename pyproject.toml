@@ -7,7 +7,9 @@ authors = [
     { name = "Vitaly Dolgov", email = "vitaly.dolgov@posteo.net" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "python-dotenv>=1.2.2",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -18,9 +20,10 @@ packages = ["inloop"]
 
 [project.scripts]
 demo = "inloop.demo.main:main"
+extensions = "inloop.cmd.extensions:main"
 
 [tool.uv]
-default-groups = ["dev", "extensions"]
+default-groups = ["dev", "bundled_extensions"]
 
 [tool.uv.sources]
 browser = { path = "extensions/browser", editable = true }
@@ -32,7 +35,7 @@ dev = [
     "pytest>=8.0.0",
     "rich>=13.0.0"
 ]
-extensions = [
+bundled_extensions = [
     "browser",
     "calculator",
     "filesystem",
