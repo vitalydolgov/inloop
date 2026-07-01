@@ -81,21 +81,13 @@ When adding a tool that resembles an existing one, make each description explici
 
 ### Testing CLI
 
-Create `<module>/__main__.py` to test tools without starting the agent:
-
-```python
-from inloop import contrib
-from greeter import EXTENSION
-
-if __name__ == "__main__":
-    contrib.program(EXTENSION)()
-```
+Run a tool from any installed extension without starting the agent:
 
 ```sh
-uv run python -m <module> <tool_name> [key=value ...]
+uv run probe <extension> <tool_name> [key=value ...]
 ```
 
-`key=value` pairs are parsed into a dict; integers and booleans are cast automatically (`page=2` → `{"page": 2}`, `force=true` → `{"force": True}`).
+`key=value` pairs are parsed into a dict; integers and booleans are cast automatically (`page=2` → `{"page": 2}`, `force=true` → `{"force": True}`). Since path installs are editable, install an in-development extension once (`uv run extensions install ../greeter`) and source edits take effect on the next `probe` run.
 
 ## Installing an extension
 

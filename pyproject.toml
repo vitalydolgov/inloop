@@ -21,6 +21,7 @@ packages = ["inloop"]
 [project.scripts]
 demo = "inloop.demo.main:main"
 extensions = "inloop.cmd.extensions:main"
+probe = "inloop.cmd.probe:main"
 
 [tool.uv]
 default-groups = ["dev", "bundled_extensions"]
