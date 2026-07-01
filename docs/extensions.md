@@ -118,3 +118,5 @@ This deletes the extension's directory and its registry entry. Since discovery i
 ```sh
 uv run extensions list
 ```
+
+Lists both externally-installed extensions (with their source) and bundled extensions (marked `bundled`).

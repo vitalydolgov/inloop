@@ -31,5 +31,7 @@ def main() -> None:
             storage.uninstall(args.name)
             print(f"Uninstalled {args.name}")
         case "list":
-            for name, source in sorted(storage.installed().items()):
-                print(f"{name}\t{source}")
+            installed = storage.installed()
+            bundled = {ext.name: "bundled" for ext in storage.load() if ext.name not in installed}
+            for name, source in sorted((installed | bundled).items()):
+                print(f"{name} ({source})")
