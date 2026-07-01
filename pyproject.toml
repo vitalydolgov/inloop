@@ -7,11 +7,7 @@ authors = [
     { name = "Vitaly Dolgov", email = "vitaly.dolgov@posteo.net" }
 ]
 requires-python = ">=3.13"
-dependencies = ["rich>=13.0.0"]
-
-[project.optional-dependencies]
-anthropic = ["anthropic>=0.112.0"]
-together = ["together>=2.19.0"]
+dependencies = []
 
 [build-system]
 requires = ["hatchling"]
@@ -24,7 +20,7 @@ packages = ["inloop"]
 demo = "inloop.demo.main:main"
 
 [tool.uv]
-default-groups = "all"
+default-groups = ["dev", "extensions"]
 
 [tool.uv.sources]
 browser = { path = "extensions/browser", editable = true }
@@ -34,12 +30,15 @@ filesystem = { path = "extensions/filesystem", editable = true }
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
+    "rich>=13.0.0"
 ]
 extensions = [
     "browser",
     "calculator",
     "filesystem",
 ]
+anthropic = ["anthropic>=0.112.0"]
+together = ["together>=2.19.0"]
 
 [tool.pytest.ini_options]
 addopts = ["-m", "not anthropic"]

@@ -30,7 +30,7 @@ uv run pytest -v          # list each test as it runs
 ### Real-backend tests
 
 ```sh
-uv sync --extra anthropic
+uv sync --group anthropic
 export ANTHROPIC_API_KEY="..."
 uv run pytest -m anthropic
 ```

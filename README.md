@@ -79,19 +79,19 @@ Fetch the bundled extensions, which live in the [`inloop-builtin`](https://githu
 git submodule update --init
 ```
 
-Then install the provider extras, export the matching API key, and run the demo.
+Then install the provider groups, export the matching API key, and run the demo.
 
-Install every provider extra:
+Install every provider:
 
 ```sh
-uv sync --all-extras
+uv sync --all-groups
 uv run demo
 ```
 
 Or install just one provider — for example, Anthropic:
 
 ```sh
-uv sync --extra anthropic
+uv sync --group anthropic
 export ANTHROPIC_API_KEY=...
 uv run demo
 ```

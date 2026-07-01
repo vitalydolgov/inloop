@@ -15,7 +15,7 @@ from inloop.infra import providers
 ### Anthropic
 
 ```sh
-uv sync --extra anthropic
+uv sync --group anthropic
 export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
@@ -34,7 +34,7 @@ model = providers.anthropic.AnthropicModel(
 ### Together AI
 
 ```sh
-uv sync --extra together
+uv sync --group together
 export TOGETHER_API_KEY="..."
 ```
 
