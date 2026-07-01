@@ -27,3 +27,9 @@ Dependency rules:
 
 - Write documentation that stands alone — don't cite or assume CLAUDE.md.
 - Omit what the reader already knows — from the code (signatures, formats, behavior) or from domain familiarity. Point to the implementation instead of restating it.
+
+## Repository
+
+- Commit messages are a single title line only — no body.
+- When a commit only changes CLAUDE.md, title it "Update CLAUDE.md".
+- On a feature branch, squash its commits, then merge fast-forward.
