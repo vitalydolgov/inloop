@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import AsyncIterator, Iterator, Sequence
 
 from inloop.app import agent
-from inloop.app import log
+from inloop.app import logger
 from inloop.domain import extension
 from inloop.domain import message
 from inloop.domain import streaming
@@ -251,9 +251,9 @@ class _RecordingLogger:
     """A Logger that records every entry it's given."""
 
     def __init__(self) -> None:
-        self.entries: list[log.Entry] = []
+        self.entries: list[logger.Entry] = []
 
-    def log(self, entry: log.Entry) -> None:
+    def log(self, entry: logger.Entry) -> None:
         self.entries.append(entry)
 
 
@@ -295,11 +295,11 @@ def test_logs_user_input_model_output_and_tool_results() -> None:
     asyncio.run(gather())
 
     assert recorder.entries == [
-        log.UserMessage("add 2 and 2"),
+        logger.UserMessage("add 2 and 2"),
         streaming.ThinkingDelta("thinking about it"),
         streaming.ToolUse(id="t1", name="test__add", input={"a": 2, "b": 2}),
         streaming.MessageCompleted(text="", stop_reason="tool_use"),
-        log.ToolResult(message.ToolCall("t1", "test__add", {"a": 2, "b": 2}), "4"),
+        logger.ToolResult(message.ToolCall("t1", "test__add", {"a": 2, "b": 2}), "4"),
         streaming.TextDelta("the sum is 4"),
         streaming.MessageCompleted(text="the sum is 4", stop_reason="end_turn"),
     ]

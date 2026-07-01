@@ -3,7 +3,7 @@
 from collections.abc import AsyncIterator, Iterator, Sequence
 
 from inloop.app.conversation import Conversation
-from inloop.app import log
+from inloop.app import logger
 from inloop.domain import message
 from inloop.domain.message import Message, Role
 from inloop.domain import model
@@ -20,7 +20,7 @@ class Agent:
         self,
         language_model: model.Model,
         extensions: Sequence[extension.Extension] = (),
-        logger: log.Logger | None = None,
+        logger: logger.Logger | None = None,
     ) -> None:
         self._model = language_model
         self._tools = {}
@@ -38,13 +38,13 @@ class Agent:
             if user_text in COMMANDS:
                 return
 
-            self._log(log.UserMessage(user_text))
+            self._log(logger.UserMessage(user_text))
             self.conversation.add(Message(Role.USER, [message.Text(user_text)]))
 
             for event in self._agent_turn():
                 yield event
 
-    def _log(self, entry: log.Entry) -> None:
+    def _log(self, entry: logger.Entry) -> None:
         if self._logger:
             self._logger.log(entry)
 
@@ -68,7 +68,7 @@ class Agent:
             for call in calls:
                 tool = self._tools[call.name]
                 content = tool.execute(call.input)
-                self._log(log.ToolResult(call, content))
+                self._log(logger.ToolResult(call, content))
                 results.append(message.ToolResult(call.id, content))
 
             assistant_blocks: list[message.Block] = [*texts, *calls]

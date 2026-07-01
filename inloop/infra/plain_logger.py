@@ -4,7 +4,7 @@ import datetime
 import json
 from pathlib import Path
 
-from inloop.app import log
+from inloop.app import logger
 from inloop.domain import streaming
 
 
@@ -18,12 +18,12 @@ class PlainLogger:
         self._thinking = ""
         self._text = ""
 
-    def _payload(self, entry: log.Entry) -> dict[str, object] | None:
+    def _payload(self, entry: logger.Entry) -> dict[str, object] | None:
         """Render a log entry as a JSON-serializable payload, tagged with its type."""
         match entry:
-            case log.UserMessage(text):
+            case logger.UserMessage(text):
                 return {"type": "user_message", "text": text}
-            case log.ToolResult(call, content):
+            case logger.ToolResult(call, content):
                 return {
                     "type": "tool_result",
                     "tool_call_id": call.id,
@@ -51,7 +51,7 @@ class PlainLogger:
             case streaming.MessageCompleted(text, stop_reason):
                 return {"type": "message_completed", "stop_reason": stop_reason}
 
-    def log(self, entry: log.Entry) -> None:
+    def log(self, entry: logger.Entry) -> None:
         """Append the entry as a timestamped `time {payload}` line, folding streamed deltas into their phase's end."""
         payload = self._payload(entry)
         if payload is None:
