@@ -1,19 +1,19 @@
-# Hexagonal ports
+# Ports and Adapters
 
 Ports are `Protocol` interfaces declared in `domain` or `app`. `infra` provides concrete implementations that satisfy them structurally, with no inheritance.
 
-## `Model` — `inloop/domain/model.py`
+## `Model` — `domain/model.py`
 
 A language model that answers a conversation as a stream of events.
 
-## `Config` — `inloop/app/config.py`
+## `Config` — `app/config.py`
 
 Reads application configuration.
 
-## `ExtensionRegistry` — `inloop/app/extensions.py`
+## `ExtensionRegistry` — `app/extensions.py`
 
 Installs, removes, lists, and loads extensions.
 
-## `Logger` — `inloop/app/logger.py`
+## `Logger` — `app/logger.py`
 
 Records entries produced while the agent runs.

@@ -2,15 +2,23 @@ This is a Python project managed with uv.
 
 ## Architecture
 
-Project follows Domain-Driven Design (DDD) with this layout:
+Project follows Domain-Driven Design (DDD) with a hexagonal (ports-and-adapters) structure:
 - `domain`  - core concepts and their behavior
 - `app`     - workflows that coordinate domain behavior
 - `infra`   - concrete implementations of domain and app ports
 - `demo`    - showcase of system capabilities
+- `cmd`     - entry points for configuration utilities
 
 Dependency rules:
 - `domain` must not import from any other layer — it has zero dependencies on the rest of the project.
-- `app` must not import from `infra` or `demo` — it only coordinates domain concepts.
+- `app` must not import from `infra` — it only coordinates domain concepts.
+- Dependencies point inward: `infra` and `demo` depend on `app` and `domain`, never the reverse.
+
+### Ports and adapters
+
+- Every capability `infra` provides must be exposed through a `Protocol` port owned by its consumer (`domain` for business behavior, `app` for operational concerns), with `infra` supplying only the implementation (the adapter). Never a bare function or class in `infra` with no port behind it.
+- Ports are the boundary of the hexagon: the core (`domain` + `app`) defines the interfaces it needs, and adapters in `infra` implement them. This is what lets the core stay ignorant of concrete technology (databases, HTTP, message brokers, etc.).
+- Keep `docs/hexagonal.md` in sync whenever a port or its implementation changes.
 
 ## Python conventions
 
@@ -18,18 +26,13 @@ Dependency rules:
 - Do not document helper functions.
 - Import modules directly — do not use `__init__.py` to re-export or aggregate imports.
 - When returning a sequence, always use a list — never a tuple.
+- Don't annotate a local variable with a port's `Protocol` type when assigning it a concrete implementation.
 
 ## Testing
 
 - Write tests only for `domain` and `app`, do not test `infra` unless explicitly requested.
 
-## Documentation
-
-- Write documentation that stands alone — don't cite or assume CLAUDE.md.
-- Omit what the reader already knows — from the code (signatures, formats, behavior) or from domain familiarity. Point to the implementation instead of restating it.
-
 ## Repository
 
 - Commit messages are a single title line only — no body.
 - When a commit only changes CLAUDE.md, title it "Update CLAUDE.md".
-- On a feature branch, squash its commits, then merge fast-forward.

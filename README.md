@@ -43,7 +43,7 @@ Around the loop sit the harness capabilities — each a seam where the harness e
 
 ## Extensions
 
-An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule under `extensions/`, or living in its own repo — that exposes an `EXTENSION` value describing its tools. Installed extensions are discovered automatically. See [docs/extensions.md](docs/extensions.md) for how to create and install one.
+An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule under `extensions/`, or living in its own repo — that exposes an `EXTENSION` value describing its tools. Installed extensions are discovered automatically. Writing one means declaring tools with `inloop.contrib` and can be tried out with `uv run probe`, without starting the agent. See [docs/extensions.md](docs/extensions.md) for how to create and install one.
 
 ### Built-in extensions
 
@@ -73,32 +73,40 @@ I should use the calculator__evaluate tool to perform this arithmetic operation.
 
 ## Setup
 
-Fetch the bundled extensions, which live in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule:
+1. Fetch the bundled extensions, which live in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule:
 
-```sh
-git submodule update --init
-```
+   ```sh
+   git submodule update --init
+   ```
 
-Then install the provider groups, export the matching API key, and run the demo.
+2. Copy `.env.example` to `.env` and adjust as needed:
 
-Install every provider:
+   ```sh
+   cp .env.example .env
+   ```
 
-```sh
-uv sync --all-groups
-uv run demo
-```
+3. Install the provider groups, export the matching API key, and run the demo.
 
-Or install just one provider — for example, Anthropic:
+   Install every provider:
 
-```sh
-uv sync --group anthropic
-export ANTHROPIC_API_KEY=...
-uv run demo
-```
+   ```sh
+   uv sync --all-groups
+   uv run demo
+   ```
+
+   Or install just one provider — for example, Anthropic:
+
+   ```sh
+   uv sync --group anthropic
+   export ANTHROPIC_API_KEY=...
+   uv run demo
+   ```
 
 ## Documentation
 
 - [Extensions](docs/extensions.md) — how to create and install extensions
 - [Providers](docs/providers.md) — supported LLM backends, how to configure them, and how to write your own
+- [Configuration](docs/configuration.md) — environment variables and `.env` settings
+- [Ports and adapters](docs/hexagonal.md) — the ports connecting domain and app to their implementations
 - [Logging](docs/logging.md) — recording user input, model output, and tool calls
 - [Testing](docs/testing.md) — test layout, how to run tests, and what gets covered

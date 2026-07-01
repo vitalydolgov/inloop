@@ -6,7 +6,7 @@ A provider is an adapter that lets the agent talk to a specific LLM backend. The
 
 ## Built-in providers
 
-Each provider lives in its own module under `inloop/infra/providers/` and is re-exported from `inloop/infra/providers/__init__.py`. Import the `providers` package and reach a given backend off it:
+Each provider lives in its own module under `infra/providers/` and is re-exported from `infra/providers/__init__.py`. Import the `providers` package and reach a given backend off it:
 
 ```python
 from inloop.infra import providers
