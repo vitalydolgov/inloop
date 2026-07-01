@@ -45,6 +45,7 @@ bundled_extensions = [
 telegram = [
     "aiohttp>=3.9",
     "markdown-it-py>=3.0",
+    "pyngrok>=7.0",
 ]
 anthropic = ["anthropic>=0.112.0"]
 together = ["together>=2.19.0"]

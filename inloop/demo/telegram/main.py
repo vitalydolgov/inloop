@@ -1,10 +1,10 @@
 """Run the Telegram bot, serving the agent over a webhook."""
 
+import argparse
 import asyncio
 import hashlib
 import os
 from pathlib import Path
-from urllib.parse import urlparse
 
 import aiohttp
 from aiohttp import web
@@ -24,7 +24,7 @@ def _secret_token(bot_token: str) -> str:
     return hashlib.sha256(bot_token.encode()).hexdigest()
 
 
-async def _run() -> None:
+async def _run(use_ngrok: bool) -> None:
     import anthropic
     from inloop.infra import providers
 
@@ -41,22 +41,36 @@ async def _run() -> None:
 
     telegram_config = TelegramConfig()
     secret_token = _secret_token(telegram_config.bot_token())
+    path = telegram_config.webhook_path()
+    port = int(os.environ.get("PORT", DEFAULT_PORT))
+
+    if use_ngrok:
+        from pyngrok import ngrok
+
+        webhook_url = ngrok.connect(port, "http").public_url + path
+    else:
+        webhook_url = telegram_config.webhook_url()
 
     async with aiohttp.ClientSession() as session:
         client = TelegramClient(session, telegram_config.bot_token())
-        await client.set_webhook(telegram_config.webhook_url(), secret_token)
+        await client.set_webhook(webhook_url, secret_token)
 
         app = create_app(agent, client, telegram_config, secret_token)
         runner = web.AppRunner(app)
         await runner.setup()
-        port = int(os.environ.get("PORT", DEFAULT_PORT))
         site = web.TCPSite(runner, "0.0.0.0", port)
         await site.start()
-        path = urlparse(telegram_config.webhook_url()).path
         print(f"Listening on 0.0.0.0:{port}{path}")
+        if use_ngrok:
+            print(f"Public URL: {webhook_url}")
         await asyncio.Event().wait()
 
 
 def main() -> None:
     """Start the Telegram bot webhook server."""
-    asyncio.run(_run())
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--ngrok", action="store_true", help="expose the webhook through an ngrok tunnel"
+    )
+    args = parser.parse_args()
+    asyncio.run(_run(args.ngrok))

@@ -45,8 +45,8 @@ Around the loop sit the harness capabilities — each a seam where the harness e
 
 Two ways to talk to the agent:
 
-- **CLI** (`uv run demo`) — an interactive terminal chat that streams each reply live as the model generates it.
-- **Telegram** (`uv run telegram-demo`) — a bot served over a webhook, restricted to a single Telegram user. See [docs/telegram.md](docs/telegram.md).
+- **CLI** — an interactive terminal chat that streams each reply live as the model generates it.
+- **Telegram** — a bot served over a webhook, restricted to a single Telegram user. See [docs/telegram.md](docs/telegram.md).
 
 Running the CLI against Gemma 4 31B:
 

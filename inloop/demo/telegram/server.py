@@ -2,7 +2,6 @@
 
 import html
 from collections.abc import AsyncIterator
-from urllib.parse import urlparse
 
 from aiohttp import web
 
@@ -37,7 +36,7 @@ def create_app(
         return web.Response()
 
     app = web.Application()
-    app.router.add_post(urlparse(config.webhook_url()).path, handle_update)
+    app.router.add_post(config.webhook_path(), handle_update)
     return app
 
 

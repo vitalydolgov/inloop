@@ -13,13 +13,15 @@ Set in `.env` or the environment:
 
 - `TELEGRAM_BOT_TOKEN` — the bot's API token, from [@BotFather](https://t.me/BotFather).
 - `TELEGRAM_USER_ID` — the only Telegram user id the bot will respond to.
-- `TELEGRAM_WEBHOOK_URL` — the public HTTPS URL Telegram should deliver updates to; its path becomes the route the bot listens on. Must be reachable from Telegram's servers, so a locally run bot needs a tunnel (e.g. ngrok) in front of it.
+- `TELEGRAM_WEBHOOK_URL` — the public HTTPS URL Telegram should deliver updates to; its path becomes the route the bot listens on. Optional when running with `--ngrok`.
 
 ```sh
 uv run telegram-demo
 ```
 
 The process listens on `0.0.0.0:8080` by default, overridable with `PORT`, and registers `TELEGRAM_WEBHOOK_URL` with Telegram on startup.
+
+Pass `--ngrok` to run behind an ad-hoc [ngrok](https://ngrok.com/) tunnel instead, for a locally run bot with no public URL of its own. The tunnel's host replaces `TELEGRAM_WEBHOOK_URL`'s, so the variable can be omitted entirely.
 
 ## Behavior
 
