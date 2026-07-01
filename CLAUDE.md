@@ -35,4 +35,5 @@ Dependency rules:
 ## Repository
 
 - Commit messages are a single title line only — no body.
+- Keep only the essential action and object in the title; drop trailing qualifiers that add detail without disambiguating the change.
 - When a commit only changes CLAUDE.md, title it "Update CLAUDE.md".
