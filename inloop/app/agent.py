@@ -10,10 +10,33 @@ from inloop.domain.message import Message, Role
 from inloop.domain import model
 from inloop.domain import streaming
 from inloop.domain import extension
+from inloop.domain import tool
 
 COMMANDS = frozenset({"/exit", "/quit"})
 
 INTERRUPTED_NOTICE = "[Interrupted by user]"
+
+SUBAGENT_TOOL = "agent__spawn"
+
+SUBAGENT_DESCRIPTION = (
+    "Delegate a scoped task to a fresh subagent and return its final answer. "
+    "The subagent runs its own conversation with the same tools and reports back."
+)
+
+SUBAGENT_PARAMETERS = {
+    "type": "object",
+    "properties": {
+        "task": {
+            "type": "string",
+            "description": "The task for the subagent to carry out.",
+        }
+    },
+    "required": ["task"],
+}
+
+
+async def _once(text):
+    yield text
 
 
 class Agent:
@@ -21,15 +44,27 @@ class Agent:
 
     def __init__(
         self,
-        language_model: model.Model,
+        model: model.Model,
+        subagent_model: model.Model | None = None,
         extensions: Sequence[extension.Extension] = (),
         logger: logger.Logger | None = None,
+        agent_id: str = "main",
+        can_spawn: bool = True,
     ):
-        self._model = language_model
+        self._model = model
+        self._subagent_model = subagent_model or model
+        self._extensions = list(extensions)
         self._tools = {}
         for ext in extensions:
             self._tools.update(ext.tools_by_name())
+        if can_spawn:
+            self._tools[SUBAGENT_TOOL] = tool.Tool(
+                SUBAGENT_TOOL, SUBAGENT_DESCRIPTION, SUBAGENT_PARAMETERS, self._spawn
+            )
         self._logger = logger
+        self._id = agent_id
+        self._children = []
+        self._child_count = 0
         self._interrupted = False
         self.conversation = Conversation()
         """The conversation transcript owned by this agent."""
@@ -55,12 +90,38 @@ class Agent:
                     break
 
     def interrupt(self):
-        """Ask the current reply to stop streaming as soon as possible."""
+        """Ask the current reply to stop streaming as soon as possible, cascading to subagents."""
         self._interrupted = True
+        for child in self._children:
+            child.interrupt()
 
     def _log(self, entry):
         if self._logger:
-            self._logger.log(entry)
+            self._logger.log(entry, self._id)
+
+    async def _spawn(self, args):
+        self._child_count += 1
+        child = Agent(
+            self._subagent_model,
+            extensions=self._extensions,
+            logger=self._logger,
+            agent_id=f"sub-{self._child_count}",
+            can_spawn=False,
+        )
+        self._children.append(child)
+        try:
+            final = ""
+            async for event in child.events(_once(args["task"])):
+                match event:
+                    case streaming.MessageCompleted(text) if text:
+                        final = text
+                    case streaming.Failed(error):
+                        return f"[subagent failed: {error}]"
+                    case streaming.Interrupted():
+                        return final or INTERRUPTED_NOTICE
+            return final
+        finally:
+            self._children.remove(child)
 
     async def _agent_turn(self, stop):
         calls = []

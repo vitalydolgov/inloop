@@ -15,11 +15,10 @@ class PlainLogger:
         directory.mkdir(parents=True, exist_ok=True)
         run_id = datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%SZ")
         self._path = directory / f"{run_id}.log"
-        self._thinking = ""
-        self._text = ""
+        self._thinking: dict[str, str] = {}
+        self._text: dict[str, str] = {}
 
-    def _payload(self, entry: logger.Entry) -> dict[str, object] | None:
-        """Render a log entry as a JSON-serializable payload, tagged with its type."""
+    def _payload(self, entry, agent_id):
         match entry:
             case logger.UserMessage(text):
                 return {"type": "user_message", "text": text}
@@ -31,18 +30,18 @@ class PlainLogger:
                     "content": content,
                 }
             case streaming.ThinkingDelta(text):
-                self._thinking += text
+                self._thinking[agent_id] = self._thinking.get(agent_id, "") + text
                 return None
             case streaming.TextDelta(text):
-                self._text += text
+                self._text[agent_id] = self._text.get(agent_id, "") + text
                 return None
             case streaming.ThinkingPhase.ENDED:
-                text, self._thinking = self._thinking, ""
+                text = self._thinking.pop(agent_id, "")
                 return {"type": "thinking_phase", "phase": entry.value, "text": text}
             case streaming.ThinkingPhase():
                 return {"type": "thinking_phase", "phase": entry.value}
             case streaming.TextPhase.ENDED:
-                text, self._text = self._text, ""
+                text = self._text.pop(agent_id, "")
                 return {"type": "text_phase", "phase": entry.value, "text": text}
             case streaming.TextPhase():
                 return {"type": "text_phase", "phase": entry.value}
@@ -51,17 +50,18 @@ class PlainLogger:
             case streaming.MessageCompleted(text, stop_reason):
                 return {"type": "message_completed", "stop_reason": stop_reason}
             case streaming.Interrupted():
-                text, self._text = self._text, ""
+                text = self._text.pop(agent_id, "")
                 return {"type": "interrupted", "text": text}
             case streaming.Failed(error):
-                text, self._text = self._text, ""
+                text = self._text.pop(agent_id, "")
                 return {"type": "failed", "error": error, "text": text}
 
-    def log(self, entry: logger.Entry) -> None:
+    def log(self, entry: logger.Entry, agent_id: str = "main") -> None:
         """Append the entry as a timestamped `time {payload}` line, folding streamed deltas into their phase's end."""
-        payload = self._payload(entry)
+        payload = self._payload(entry, agent_id)
         if payload is None:
             return
+        payload = {"agent_id": agent_id, **payload}
         time = datetime.datetime.now(datetime.UTC).isoformat()
         with self._path.open("a") as f:
             f.write(f"{time} {json.dumps(payload)}\n")

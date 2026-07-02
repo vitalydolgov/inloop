@@ -42,7 +42,7 @@ def test_logs_a_user_message(tmp_path: Path) -> None:
 
     [(time, payload)] = _entries(tmp_path)
     datetime.fromisoformat(time)
-    assert payload == {"type": "user_message", "text": "hello"}
+    assert payload == {"agent_id": "main", "type": "user_message", "text": "hello"}
 
 
 def test_logs_a_tool_result(tmp_path: Path) -> None:
@@ -53,6 +53,7 @@ def test_logs_a_tool_result(tmp_path: Path) -> None:
 
     [(_, payload)] = _entries(tmp_path)
     assert payload == {
+        "agent_id": "main",
         "type": "tool_result",
         "tool_call_id": "t1",
         "name": "test__add",
@@ -69,10 +70,10 @@ def test_logs_thinking_and_text_phase_markers(tmp_path: Path) -> None:
     plain_logger.log(streaming.TextPhase.ENDED)
 
     assert [payload for _, payload in _entries(tmp_path)] == [
-        {"type": "thinking_phase", "phase": "started"},
-        {"type": "thinking_phase", "phase": "ended", "text": ""},
-        {"type": "text_phase", "phase": "started"},
-        {"type": "text_phase", "phase": "ended", "text": ""},
+        {"agent_id": "main", "type": "thinking_phase", "phase": "started"},
+        {"agent_id": "main", "type": "thinking_phase", "phase": "ended", "text": ""},
+        {"agent_id": "main", "type": "text_phase", "phase": "started"},
+        {"agent_id": "main", "type": "text_phase", "phase": "ended", "text": ""},
     ]
 
 
@@ -84,12 +85,13 @@ def test_logs_tool_use_and_message_completed(tmp_path: Path) -> None:
 
     assert [payload for _, payload in _entries(tmp_path)] == [
         {
+            "agent_id": "main",
             "type": "tool_use",
             "id": "t1",
             "name": "test__add",
             "input": {"a": 2, "b": 2},
         },
-        {"type": "message_completed", "stop_reason": "end_turn"},
+        {"agent_id": "main", "type": "message_completed", "stop_reason": "end_turn"},
     ]
 
 
@@ -106,10 +108,10 @@ def test_folds_deltas_into_their_phase_end(tmp_path: Path) -> None:
     plain_logger.log(streaming.TextPhase.ENDED)
 
     assert [payload for _, payload in _entries(tmp_path)] == [
-        {"type": "thinking_phase", "phase": "started"},
-        {"type": "thinking_phase", "phase": "ended", "text": "reasoning"},
-        {"type": "text_phase", "phase": "started"},
-        {"type": "text_phase", "phase": "ended", "text": "reply"},
+        {"agent_id": "main", "type": "thinking_phase", "phase": "started"},
+        {"agent_id": "main", "type": "thinking_phase", "phase": "ended", "text": "reasoning"},
+        {"agent_id": "main", "type": "text_phase", "phase": "started"},
+        {"agent_id": "main", "type": "text_phase", "phase": "ended", "text": "reply"},
     ]
 
 
@@ -123,10 +125,10 @@ def test_resets_the_buffer_after_each_phase(tmp_path: Path) -> None:
     plain_logger.log(streaming.ThinkingPhase.ENDED)
 
     assert [payload for _, payload in _entries(tmp_path)] == [
-        {"type": "thinking_phase", "phase": "started"},
-        {"type": "thinking_phase", "phase": "ended", "text": "first"},
-        {"type": "thinking_phase", "phase": "started"},
-        {"type": "thinking_phase", "phase": "ended", "text": ""},
+        {"agent_id": "main", "type": "thinking_phase", "phase": "started"},
+        {"agent_id": "main", "type": "thinking_phase", "phase": "ended", "text": "first"},
+        {"agent_id": "main", "type": "thinking_phase", "phase": "started"},
+        {"agent_id": "main", "type": "thinking_phase", "phase": "ended", "text": ""},
     ]
 
 
@@ -137,6 +139,6 @@ def test_appends_entries_in_order(tmp_path: Path) -> None:
     plain_logger.log(logger.UserMessage("second"))
 
     assert [payload for _, payload in _entries(tmp_path)] == [
-        {"type": "user_message", "text": "first"},
-        {"type": "user_message", "text": "second"},
+        {"agent_id": "main", "type": "user_message", "text": "first"},
+        {"agent_id": "main", "type": "user_message", "text": "second"},
     ]

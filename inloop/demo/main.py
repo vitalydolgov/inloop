@@ -153,14 +153,23 @@ def main():
     import anthropic
     from inloop.infra import providers
 
-    model = providers.anthropic.AnthropicModel(
-        anthropic.AsyncAnthropic(),
-        model="claude-sonnet-5",
-        max_tokens=64_000,
-        effort="low"
-    )
+    client = anthropic.AsyncAnthropic()
     config = EnvConfig()
     registry = DirectoryExtensionRegistry(config.extensions_path())
-    logger = PlainLogger(Path("var/log"))
-    agent = Agent(model, extensions=registry.load(), logger=logger)
+    agent = Agent(
+        model=providers.anthropic.AnthropicModel(
+            client,
+            model="claude-sonnet-5",
+            max_tokens=64_000,
+            effort="medium",
+        ),
+        subagent_model=providers.anthropic.AnthropicModel(
+            client,
+            model="claude-sonnet-5",
+            max_tokens=64_000,
+            effort="low",
+        ),
+        extensions=registry.load(),
+        logger=PlainLogger(Path("var/log"))
+    )
     asyncio.run(chat(agent))

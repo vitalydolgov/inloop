@@ -1,10 +1,10 @@
 # Inloop
 
-A hackable Python implementation of the agentic loop: a language model streams a conversation, calls tools, and acts on their results. Add your own tools via extensions.
+A hackable Python implementation of the agentic loop: a language model streams a conversation, calls tools or delegates to subagents, and acts on their results. Add your own tools via extensions.
 
 ## North star
 
-An agent is a language model wrapped in a harness. The model reasons; the harness is everything around it that turns reasoning into sustained, useful action. This is *not* the current state. Today the framework implements the core loop, prompts, and tools; orchestration, security, and memory are still aspirational.
+An agent is a language model wrapped in a harness. The model reasons; the harness is everything around it that turns reasoning into sustained, useful action. This is *not* the current state. Today the framework implements the core loop, prompts, tools and subagents; orchestration, security, and memory are still aspirational.
 
 ```
                       AGENT  =  LLM  +  HARNESS
@@ -110,6 +110,39 @@ An extension is a named bundle of tools that the agent can call. Each is a self-
    ```sh
    uv run demo
    ```
+
+## Quickstart
+
+Wire the pieces together to drive an agent from your own code — this is what `demo/main.py` does to power the CLI:
+
+```python
+import pathlib
+import anthropic
+
+from inloop.app.agent import Agent
+from inloop.infra.directory_registry import DirectoryExtensionRegistry
+from inloop.infra import providers
+
+client = anthropic.AsyncAnthropic()
+registry = DirectoryExtensionRegistry(pathlib.Path("var/extensions"))
+agent = Agent(
+    model=providers.anthropic.AnthropicModel(
+        client,
+        model="claude-sonnet-5",
+        max_tokens=64_000,
+        effort="medium",
+    ),
+    subagent_model=providers.anthropic.AnthropicModel(
+        client,
+        model="claude-sonnet-5",
+        max_tokens=64_000,
+        effort="low",
+    ),
+    extensions=registry.load(),
+)
+```
+
+Feed it messages through `agent.events(messages)`, an async generator over `streaming.Event`s — see `demo/main.py` for a full interactive terminal loop.
 
 ## Documentation
 

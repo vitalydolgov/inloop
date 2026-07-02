@@ -87,6 +87,8 @@ model = providers.openai.OpenAIModel(openai.OpenAI(), model="...", max_tokens=64
 agent = Agent(model, extensions=extensions.load(MANIFEST))
 ```
 
+Pass `subagent_model` to run spawned subagents on a different `Model` than the parent — e.g. a lower effort setting for the cheaper, more scoped work a subagent does.
+
 Re-export your module from `infra/providers/__init__.py` guarded by `try`/`except ImportError` so other providers stay usable without it installed:
 
 ```python

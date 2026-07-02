@@ -28,6 +28,6 @@ Entry = UserMessage | streaming.Event | ToolResult
 class Logger(Protocol):
     """Records entries produced while the agent runs."""
 
-    def log(self, entry: Entry) -> None:
-        """Record one entry."""
+    def log(self, entry: Entry, agent_id: str = "main") -> None:
+        """Record one entry, tagged with the id of the agent that produced it."""
         ...
