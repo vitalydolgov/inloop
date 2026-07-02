@@ -85,12 +85,6 @@ def test_run_streams_events_for_each_message() -> None:
     ]
 
 
-def test_run_stops_on_command() -> None:
-    events = _collect(["/exit", "ignored"], ["unused"])
-
-    assert events == []
-
-
 def test_offers_its_tools_to_the_model() -> None:
     async def look_up(args: dict[str, object]) -> str:
         return "sunny"
@@ -252,22 +246,6 @@ def test_assistant_turn_keeps_text_before_tool_calls() -> None:
         message.Role.ASSISTANT,
         [message.Text("let me check"), message.ToolCall("c1", "test__only", {})],
     )
-
-
-def test_command_stops_without_recording_it() -> None:
-    model = _ScriptedModel(["hi there"])
-    chat_agent = agent.Agent(model)
-
-    async def gather() -> None:
-        async for _ in chat_agent.events(_stream(["hello", "/quit"])):
-            pass
-
-    asyncio.run(gather())
-
-    assert chat_agent.conversation.history == [
-        message.Message(message.Role.USER, [message.Text("hello")]),
-        message.Message(message.Role.ASSISTANT, [message.Text("hi there")]),
-    ]
 
 
 class _RecordingLogger:

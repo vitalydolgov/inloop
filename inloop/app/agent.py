@@ -12,8 +12,6 @@ from inloop.domain import streaming
 from inloop.domain import extension
 from inloop.domain import tool
 
-COMMANDS = frozenset({"/exit", "/quit"})
-
 INTERRUPTED_NOTICE = "[Interrupted by user]"
 
 SUBAGENT_TOOL = "agent__spawn"
@@ -72,11 +70,8 @@ class Agent:
     async def events(
         self, messages: AsyncIterator[str]
     ) -> AsyncIterator[streaming.Event]:
-        """Ask the model for each non-command message, running any tools it requests."""
+        """Ask the model for each message, running any tools it requests."""
         async for user_text in messages:
-            if user_text in COMMANDS:
-                return
-
             self._log(logger.UserMessage(user_text))
             self.conversation.add(Message(Role.USER, [message.Text(user_text)]))
 

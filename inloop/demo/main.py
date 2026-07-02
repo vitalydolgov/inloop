@@ -44,12 +44,8 @@ async def stdin_lines() -> AsyncIterator[str]:
         sys.stdout.write("\033[1A\033[2K")
         sys.stdout.flush()
         if line.strip():
-            console.print(Panel(
-                line.strip(),
-                border_style="blue",
-                box=rich.box.ROUNDED,
-                padding=(0, 1),
-            ))
+            console.print(f"[bold]› {line.strip()}[/bold]")
+            console.print()
         yield line
 
 
@@ -81,16 +77,18 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
         nonlocal text_buffer, at_bol, at_blank_line
         match event:
             case streaming.ThinkingPhase.STARTED:
+                console.print(Text("Thinking...", style="italic dim"), end="")
+                at_bol = False
+                at_blank_line = False
+
+            case streaming.ThinkingDelta(_):
                 pass
 
-            case streaming.ThinkingDelta(text):
-                console.print(Text(text, style="italic dim"), end="")
-                if text:
-                    at_bol = text.endswith("\n")
-                    at_blank_line = False
-
             case streaming.ThinkingPhase.ENDED:
-                separate()
+                sys.stdout.write("\r\033[2K")
+                sys.stdout.flush()
+                at_bol = True
+                at_blank_line = True
 
             case streaming.TextPhase.STARTED:
                 text_buffer = ""
@@ -137,9 +135,15 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
         if live.is_started:
             live.stop()
 
-
 async def chat(agent: Agent) -> None:
     """Drive the interactive chat, interrupting the current reply on ^C."""
+    if sys.stdin.isatty():
+        console.print(Panel(
+            "[bold]\u2192 [blue]Ctrl+C[/blue] to interrupt · [blue]Ctrl+D[/blue] to exit[/bold]",
+            border_style="dim",
+            box=rich.box.ROUNDED,
+            padding=(0, 1),
+        ))
     loop = asyncio.get_running_loop()
     loop.add_signal_handler(signal.SIGINT, agent.interrupt)
     try:
