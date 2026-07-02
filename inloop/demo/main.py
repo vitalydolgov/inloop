@@ -73,6 +73,15 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
         at_bol = True
         at_blank_line = True
 
+    def flush_settled() -> None:
+        nonlocal text_buffer
+        if text_buffer.count("```") % 2:
+            return
+        head, sep, tail = text_buffer.rpartition("\n\n")
+        if sep:
+            console.print(Markdown(head))
+            text_buffer = tail
+
     def handle(event: streaming.Event) -> None:
         nonlocal text_buffer, at_bol, at_blank_line
         match event:
@@ -96,6 +105,7 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
 
             case streaming.TextDelta(delta):
                 text_buffer += delta
+                flush_settled()
                 live.update(Markdown(text_buffer))
 
             case streaming.TextPhase.ENDED:
