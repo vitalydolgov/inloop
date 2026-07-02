@@ -3,7 +3,6 @@
 import asyncio
 from collections.abc import AsyncIterator, Iterable
 
-import anthropic
 import pytest
 
 import calculator
@@ -11,6 +10,9 @@ import calculator
 from inloop.app import agent
 from inloop.domain import extension
 from inloop.domain import streaming
+
+pytest.importorskip("anthropic")
+
 from inloop.infra.providers import anthropic
 
 MODEL = "claude-haiku-4-5"

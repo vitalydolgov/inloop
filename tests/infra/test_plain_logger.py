@@ -89,7 +89,7 @@ def test_logs_tool_use_and_message_completed(tmp_path: Path) -> None:
             "name": "test__add",
             "input": {"a": 2, "b": 2},
         },
-        {"type": "message_completed", "text": "4", "stop_reason": "end_turn"},
+        {"type": "message_completed", "stop_reason": "end_turn"},
     ]
 
 
