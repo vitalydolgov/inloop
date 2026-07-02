@@ -12,7 +12,6 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 Set in `.env` or the environment:
 
 - `TELEGRAM_BOT_TOKEN` — the bot's API token, from [@BotFather](https://t.me/BotFather).
-- `TELEGRAM_USER_ID` — the only Telegram user id the bot will respond to.
 - `TELEGRAM_WEBHOOK_URL` — the public HTTPS URL Telegram should deliver updates to; its path becomes the route the bot listens on. Optional when running with `--ngrok`.
 
 ```sh
@@ -25,8 +24,8 @@ Pass `--ngrok` to run behind an ad-hoc [ngrok](https://ngrok.com/) tunnel instea
 
 ## Behavior
 
-Every incoming update is checked against a per-bot secret token (derived from `TELEGRAM_BOT_TOKEN`, sent to Telegram at webhook registration) before anything else runs, so only Telegram's own callbacks are accepted. Messages from any user other than `TELEGRAM_USER_ID` are silently dropped.
+Every incoming update is checked against a per-bot secret token (derived from `TELEGRAM_BOT_TOKEN`, sent to Telegram at webhook registration) before anything else runs, so only Telegram's own callbacks are accepted.
 
-Accepted messages are fed to a single long-running `Agent`, so the conversation persists across messages for the allowed user. Tool calls are announced as their own message (`⛭ tool_name`) before the reply that follows.
+Accepted messages are fed to a single long-running `Agent`, so the conversation persists across messages. Tool calls are announced as their own message (`⛭ tool_name`) before the reply that follows.
 
 The agent's Markdown replies (bold, italic, inline/fenced code, links, lists, blockquotes) are converted to Telegram's HTML formatting by `demo/telegram/formatting.py` before sending.

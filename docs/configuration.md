@@ -6,7 +6,7 @@ Settings are read from environment variables, loaded from a `.env` file if prese
 
 - `EXTENSIONS_PATH` — directory where installed extensions are stored. Defaults to `var/extensions`. See [Extensions](extensions.md).
 - Provider API keys — each provider reads its own key directly from the environment, e.g. `ANTHROPIC_API_KEY`. See [Providers](providers.md).
-- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_USER_ID`, `TELEGRAM_WEBHOOK_URL` — required by the Telegram bot. See [Telegram](telegram.md).
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_URL` — required by the Telegram bot. See [Telegram](telegram.md).
 
 ## Adding an option
 
