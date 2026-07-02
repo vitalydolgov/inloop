@@ -69,7 +69,7 @@ An extension is a named bundle of tools that the agent can call. Each is a self-
 
 - `calculator` — evaluates arithmetic expressions (a minimal example extension)
 - `browser` — drives a Chrome browser for web automation
-- `filesystem` — reads, writes, and patches files on disk
+- `resources` — reads, writes, and patches local files, and fetches the readable text content of a web page over HTTP
 
 ### External extensions
 

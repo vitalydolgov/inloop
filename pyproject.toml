@@ -30,7 +30,7 @@ default-groups = ["dev", "bundled_extensions"]
 [tool.uv.sources]
 browser = { path = "extensions/browser", editable = true }
 calculator = { path = "extensions/calculator", editable = true }
-filesystem = { path = "extensions/filesystem", editable = true }
+resources = { path = "extensions/resources", editable = true }
 
 [dependency-groups]
 dev = [
@@ -40,7 +40,7 @@ dev = [
 bundled_extensions = [
     "browser",
     "calculator",
-    "filesystem",
+    "resources",
 ]
 telegram = [
     "aiohttp>=3.9",
