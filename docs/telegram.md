@@ -22,6 +22,9 @@ The process listens on `0.0.0.0:8080` by default, overridable with `PORT`, and r
 
 Pass `--ngrok` to run behind an ad-hoc [ngrok](https://ngrok.com/) tunnel instead, for a locally run bot with no public URL of its own. The tunnel's host replaces `TELEGRAM_WEBHOOK_URL`'s, so the variable can be omitted entirely.
 
+> [!TIP]
+> The bot itself doesn't restrict who can message it. To limit access, use [@BotFather](https://t.me/BotFather)'s *Bot Settings* → *Access* → *Restrict bot usage*, which lets Telegram itself drop messages from anyone not on the allowed users list.
+
 ## Behavior
 
 Every incoming update is checked against a per-bot secret token (derived from `TELEGRAM_BOT_TOKEN`, sent to Telegram at webhook registration) before anything else runs, so only Telegram's own callbacks are accepted.
