@@ -31,6 +31,18 @@ class _ScriptedModel:
         yield streaming.MessageCompleted(text=reply, stop_reason="end_turn")
 
 
+class _RaisingModel:
+    """A Model whose stream yields once, then raises."""
+
+    async def stream(
+        self,
+        messages: Sequence[message.Message],
+        tools: Sequence[tool.Tool] = (),
+    ) -> AsyncIterator[streaming.Event]:
+        yield streaming.TextDelta("partial")
+        raise RuntimeError("boom")
+
+
 class _TurnModel:
     """A Model that yields a scripted list of events per turn and records history."""
 
@@ -312,6 +324,101 @@ def test_logs_user_input_model_output_and_tool_results() -> None:
         streaming.TextDelta("the sum is 4"),
         streaming.MessageCompleted(text="the sum is 4", stop_reason="end_turn"),
     ]
+
+
+def _run_and_interrupt(turn: list[streaming.Event], after: int) -> tuple[list[streaming.Event], list[message.Message]]:
+    chat_agent = agent.Agent(_TurnModel([turn]))
+
+    async def gather() -> list[streaming.Event]:
+        seen: list[streaming.Event] = []
+        async for event in chat_agent.events(_stream(["question"])):
+            seen.append(event)
+            if len(seen) == after:
+                chat_agent.interrupt()
+        return seen
+
+    events = asyncio.run(gather())
+    return events, chat_agent.conversation.history
+
+
+def test_interrupt_stops_streaming_and_emits_an_event() -> None:
+    events, history = _run_and_interrupt(
+        [
+            streaming.TextDelta("par"),
+            streaming.TextDelta("tial"),
+            streaming.TextDelta("more"),
+            streaming.MessageCompleted(text="partial more", stop_reason="end_turn"),
+        ],
+        after=2,
+    )
+
+    assert events == [
+        streaming.TextDelta("par"),
+        streaming.TextDelta("tial"),
+        streaming.Interrupted(),
+    ]
+    assert history == [
+        message.Message(message.Role.USER, [message.Text("question")]),
+        message.Message(
+            message.Role.ASSISTANT,
+            [message.Text(f"partial\n\n{agent.INTERRUPTED_NOTICE}")],
+        ),
+    ]
+
+
+def test_interrupt_before_any_text_records_only_the_notice() -> None:
+    events, history = _run_and_interrupt(
+        [
+            streaming.ThinkingPhase.STARTED,
+            streaming.TextDelta("unseen"),
+        ],
+        after=1,
+    )
+
+    assert events == [streaming.ThinkingPhase.STARTED, streaming.Interrupted()]
+    assert history == [
+        message.Message(message.Role.USER, [message.Text("question")]),
+        message.Message(
+            message.Role.ASSISTANT, [message.Text(agent.INTERRUPTED_NOTICE)]
+        ),
+    ]
+
+
+def test_model_error_emits_a_failed_event() -> None:
+    chat_agent = agent.Agent(_RaisingModel())
+
+    async def gather() -> list[streaming.Event]:
+        return [event async for event in chat_agent.events(_stream(["hi"]))]
+
+    events = asyncio.run(gather())
+
+    assert events == [
+        streaming.TextDelta("partial"),
+        streaming.Failed("boom"),
+    ]
+
+
+def test_tool_error_emits_a_failed_event() -> None:
+    async def explode(args: dict[str, object]) -> str:
+        raise RuntimeError("tool broke")
+
+    bad = tool.Tool("bad", "Breaks.", {}, explode)
+    model = _TurnModel(
+        [
+            [
+                streaming.ToolUse(id="c1", name="test__bad", input={}),
+                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+            ],
+        ]
+    )
+    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [bad])])
+
+    async def gather() -> list[streaming.Event]:
+        return [event async for event in chat_agent.events(_stream(["go"]))]
+
+    events = asyncio.run(gather())
+
+    assert events[-1] == streaming.Failed("tool broke")
 
 
 def test_each_turn_includes_prior_turns() -> None:

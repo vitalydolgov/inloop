@@ -50,6 +50,12 @@ class PlainLogger:
                 return {"type": "tool_use", "id": id, "name": name, "input": input}
             case streaming.MessageCompleted(text, stop_reason):
                 return {"type": "message_completed", "stop_reason": stop_reason}
+            case streaming.Interrupted():
+                text, self._text = self._text, ""
+                return {"type": "interrupted", "text": text}
+            case streaming.Failed(error):
+                text, self._text = self._text, ""
+                return {"type": "failed", "error": error, "text": text}
 
     def log(self, entry: logger.Entry) -> None:
         """Append the entry as a timestamped `time {payload}` line, folding streamed deltas into their phase's end."""

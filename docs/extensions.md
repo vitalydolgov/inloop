@@ -65,7 +65,7 @@ def greet(args: dict[str, object]) -> str:
 EXTENSION = contrib.Extension(name="greeter", tools=[greet])
 ```
 
-`@contrib.tool` turns a function into a tool. The function receives the parsed arguments as a dict and returns a string; a function annotated `-> None` returns `"ok"`, and any exception is caught and returned as an error string. The agent calls each tool by its namespaced name, `<extension>__<tool>` (here `greeter__greet`).
+`@contrib.tool` turns a function into a tool. The function receives the parsed arguments as a dict and returns a string; a function annotated `-> None` returns `"ok"`. The agent calls each tool by its namespaced name, `<extension>__<tool>` (here `greeter__greet`). An exception raised by the function ends the turn as a `Failed` event rather than being fed back to the model.
 
 ### Tool descriptions
 

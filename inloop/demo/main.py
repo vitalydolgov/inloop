@@ -3,6 +3,7 @@
 import asyncio
 import json
 import readline  # noqa: F401
+import signal
 import sys
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -76,7 +77,8 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
         at_bol = True
         at_blank_line = True
 
-    async for event in events:
+    def handle(event: streaming.Event) -> None:
+        nonlocal text_buffer, at_bol, at_blank_line
         match event:
             case streaming.ThinkingPhase.STARTED:
                 pass
@@ -114,6 +116,37 @@ async def render(events: AsyncIterator[streaming.Event]) -> None:
                 live.stop()
                 separate()
 
+            case streaming.Interrupted():
+                live.stop()
+                separate()
+                console.print("[red]⨯ interrupted[/red]")
+                at_bol = True
+                at_blank_line = False
+
+            case streaming.Failed(error):
+                live.stop()
+                separate()
+                console.print(f"[red]⨯ error: {error}[/red]")
+                at_bol = True
+                at_blank_line = False
+
+    try:
+        async for event in events:
+            handle(event)
+    finally:
+        if live.is_started:
+            live.stop()
+
+
+async def chat(agent: Agent) -> None:
+    """Drive the interactive chat, interrupting the current reply on ^C."""
+    loop = asyncio.get_running_loop()
+    loop.add_signal_handler(signal.SIGINT, agent.interrupt)
+    try:
+        await render(agent.events(user_input()))
+    finally:
+        loop.remove_signal_handler(signal.SIGINT)
+
 
 def main():
     """Start the interactive chat demo."""
@@ -130,5 +163,4 @@ def main():
     registry = DirectoryExtensionRegistry(config.extensions_path())
     logger = PlainLogger(Path("var/log"))
     agent = Agent(model, extensions=registry.load(), logger=logger)
-    events = agent.events(user_input())
-    asyncio.run(render(events))
+    asyncio.run(chat(agent))

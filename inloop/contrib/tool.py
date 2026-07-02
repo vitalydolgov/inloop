@@ -13,14 +13,11 @@ def _transform(fn: Callable) -> Callable:
     is_async = inspect.iscoroutinefunction(fn)
     @wraps(fn)
     async def wrapper(*args, **kwargs):
-        try:
-            if is_async:
-                result = await fn(*args, **kwargs)
-            else:
-                result = await asyncio.to_thread(fn, *args, **kwargs)
-            return "ok" if is_proc else result
-        except Exception as exc:
-            return str(exc)
+        if is_async:
+            result = await fn(*args, **kwargs)
+        else:
+            result = await asyncio.to_thread(fn, *args, **kwargs)
+        return "ok" if is_proc else result
     return wrapper
 
 
@@ -29,7 +26,7 @@ def tool(
     description: str,
     parameters: dict[str, object],
 ) -> Callable[[Callable], Tool]:
-    """Decorator that wraps a function as a Tool, catching exceptions as error strings."""
+    """Decorator that wraps a function as a Tool."""
     def decorator(fn: Callable) -> Tool:
         return Tool(name=name, description=description, parameters=parameters, execute=_transform(fn))
     return decorator

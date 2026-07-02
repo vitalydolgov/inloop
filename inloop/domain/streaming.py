@@ -49,6 +49,25 @@ class MessageCompleted:
     stop_reason: str | None
 
 
+@dataclass(frozen=True)
+class Interrupted:
+    """The response was stopped at the user's request before completing."""
+
+
+@dataclass(frozen=True)
+class Failed:
+    """The response ended because an unexpected error occurred."""
+
+    error: str
+
+
 Event = (
-    ThinkingPhase | ThinkingDelta | TextPhase | TextDelta | ToolUse | MessageCompleted
+    ThinkingPhase
+    | ThinkingDelta
+    | TextPhase
+    | TextDelta
+    | ToolUse
+    | MessageCompleted
+    | Interrupted
+    | Failed
 )
