@@ -1,6 +1,6 @@
 """A capability the model may request to use."""
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 
@@ -11,4 +11,4 @@ class Tool:
     name: str
     description: str
     parameters: dict[str, object]
-    execute: Callable[[dict[str, object]], str]
+    execute: Callable[[dict[str, object]], Awaitable[str]]

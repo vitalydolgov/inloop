@@ -39,7 +39,7 @@ def _final_text(events: Iterable[streaming.Event]) -> str:
 
 
 def _agent(extensions: list[extension.Extension] = []) -> agent.Agent:
-    client = anthropic.Anthropic()
+    client = anthropic.AsyncAnthropic()
     model = anthropic.AnthropicModel(client, model=MODEL, max_tokens=1024)
     return agent.Agent(model, extensions=extensions)
 

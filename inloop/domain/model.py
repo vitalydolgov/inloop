@@ -1,6 +1,6 @@
 """Port for a language model that streams its response."""
 
-from collections.abc import Iterator, Sequence
+from collections.abc import AsyncIterator, Sequence
 from typing import Protocol
 
 from inloop.domain import message
@@ -15,6 +15,6 @@ class Model(Protocol):
         self,
         messages: Sequence[message.Message],
         tools: Sequence[tool.Tool] = (),
-    ) -> Iterator[streaming.Event]:
+    ) -> AsyncIterator[streaming.Event]:
         """Yield response events for the conversation, offering the given tools."""
         ...

@@ -1,6 +1,6 @@
 """Anthropic Messages API adapter."""
 
-from collections.abc import Iterator, Sequence
+from collections.abc import AsyncIterator, Sequence
 
 import anthropic
 
@@ -35,7 +35,7 @@ class AnthropicModel:
 
     def __init__(
         self,
-        client: anthropic.Anthropic,
+        client: anthropic.AsyncAnthropic,
         model: str,
         max_tokens: int,
         effort: str | None = None,
@@ -47,11 +47,11 @@ class AnthropicModel:
         self._effort = effort
         self._thinking_budget = thinking_budget
 
-    def stream(
+    async def stream(
         self,
         messages: Sequence[message.Message],
         tools: Sequence[tool.Tool] = (),
-    ) -> Iterator[streaming.Event]:
+    ) -> AsyncIterator[streaming.Event]:
         """Stream a response to the conversation, offering the given tools."""
         payload = [
             {"role": m.role.value, "content": _content(m.content)} for m in messages
@@ -78,8 +78,8 @@ class AnthropicModel:
         text_parts: list[str] = []
         in_thinking_block = False
         in_text_block = False
-        with self._client.messages.stream(**kwargs) as stream:
-            for event in stream:
+        async with self._client.messages.stream(**kwargs) as stream:
+            async for event in stream:
                 if event.type == "content_block_start":
                     if event.content_block.type == "thinking":
                         in_thinking_block = True
@@ -100,7 +100,7 @@ class AnthropicModel:
                     elif event.delta.type == "text_delta":
                         text_parts.append(event.delta.text)
                         yield streaming.TextDelta(event.delta.text)
-            final = stream.get_final_message()
+            final = await stream.get_final_message()
 
         for block in final.content:
             if block.type == "tool_use":

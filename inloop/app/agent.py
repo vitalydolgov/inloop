@@ -1,6 +1,7 @@
 """Workflow that drives a chat loop over a stream of user messages."""
 
-from collections.abc import AsyncIterator, Iterator, Sequence
+import asyncio
+from collections.abc import AsyncIterator, Sequence
 
 from inloop.app.conversation import Conversation
 from inloop.app import logger
@@ -41,20 +42,26 @@ class Agent:
             self._log(logger.UserMessage(user_text))
             self.conversation.add(Message(Role.USER, [message.Text(user_text)]))
 
-            for event in self._agent_turn():
+            async for event in self._agent_turn():
                 yield event
 
     def _log(self, entry: logger.Entry) -> None:
         if self._logger:
             self._logger.log(entry)
 
-    def _agent_turn(self) -> Iterator[streaming.Event]:
+    async def _agent_turn(self) -> AsyncIterator[streaming.Event]:
+        async def execute(call: message.ToolCall) -> message.ToolResult:
+            tool = self._tools[call.name]
+            content = await tool.execute(call.input)
+            self._log(logger.ToolResult(call, content))
+            return message.ToolResult(call.id, content)
+
         while True:
-            calls: list[message.ToolCall] = []
-            texts: list[message.Text] = []
+            calls = []
+            texts = []
 
             tools = list(self._tools.values())
-            for event in self._model.stream(self.conversation.history, tools):
+            async for event in self._model.stream(self.conversation.history, tools):
                 self._log(event)
                 match event:
                     case streaming.ToolUse():
@@ -64,14 +71,9 @@ class Agent:
                         texts.append(message.Text(event.text))
                 yield event
 
-            results = []
-            for call in calls:
-                tool = self._tools[call.name]
-                content = tool.execute(call.input)
-                self._log(logger.ToolResult(call, content))
-                results.append(message.ToolResult(call.id, content))
+            results = await asyncio.gather(*(execute(call) for call in calls))
 
-            assistant_blocks: list[message.Block] = [*texts, *calls]
+            assistant_blocks = [*texts, *calls]
             if assistant_blocks:
                 self.conversation.add(Message(Role.ASSISTANT, assistant_blocks))
 

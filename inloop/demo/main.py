@@ -121,7 +121,7 @@ def main():
     from inloop.infra import providers
 
     model = providers.anthropic.AnthropicModel(
-        anthropic.Anthropic(),
+        anthropic.AsyncAnthropic(),
         model="claude-sonnet-5",
         max_tokens=64_000,
         effort="low"

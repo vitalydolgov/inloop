@@ -1,7 +1,7 @@
 """Tests for the chat agent workflow."""
 
 import asyncio
-from collections.abc import AsyncIterator, Iterator, Sequence
+from collections.abc import AsyncIterator, Sequence
 
 from inloop.app import agent
 from inloop.app import logger
@@ -19,11 +19,11 @@ class _ScriptedModel:
         self.seen: list[list[message.Message]] = []
         self.offered_tools: list[list[tool.Tool]] = []
 
-    def stream(
+    async def stream(
         self,
         messages: Sequence[message.Message],
         tools: Sequence[tool.Tool] = (),
-    ) -> Iterator[streaming.Event]:
+    ) -> AsyncIterator[streaming.Event]:
         self.seen.append(list(messages))
         self.offered_tools.append(list(tools))
         reply = next(self._replies)
@@ -38,13 +38,14 @@ class _TurnModel:
         self._turns = iter(turns)
         self.seen: list[list[message.Message]] = []
 
-    def stream(
+    async def stream(
         self,
         messages: Sequence[message.Message],
         tools: Sequence[tool.Tool] = (),
-    ) -> Iterator[streaming.Event]:
+    ) -> AsyncIterator[streaming.Event]:
         self.seen.append(list(messages))
-        yield from next(self._turns)
+        for event in next(self._turns):
+            yield event
 
 
 async def _stream(items: list[str]) -> AsyncIterator[str]:
@@ -79,11 +80,14 @@ def test_run_stops_on_command() -> None:
 
 
 def test_offers_its_tools_to_the_model() -> None:
+    async def look_up(args: dict[str, object]) -> str:
+        return "sunny"
+
     weather = tool.Tool(
         name="weather",
         description="Look up the weather.",
         parameters={"type": "object", "properties": {}},
-        execute=lambda args: "sunny",
+        execute=look_up,
     )
     model = _ScriptedModel(["sure"])
     chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [weather])])
@@ -101,7 +105,7 @@ def test_offers_its_tools_to_the_model() -> None:
 def test_runs_requested_tool_and_feeds_result_back() -> None:
     ran: list[dict[str, object]] = []
 
-    def run(args: dict[str, object]) -> str:
+    async def run(args: dict[str, object]) -> str:
         ran.append(args)
         return "4"
 
@@ -117,11 +121,11 @@ def test_runs_requested_tool_and_feeds_result_back() -> None:
             self._turn = 0
             self.seen: list[list[message.Message]] = []
 
-        def stream(
+        async def stream(
             self,
             messages: Sequence[message.Message],
             tools: Sequence[tool.Tool] = (),
-        ) -> Iterator[streaming.Event]:
+        ) -> AsyncIterator[streaming.Event]:
             self.seen.append(list(messages))
             self._turn += 1
             if self._turn == 1:
@@ -159,7 +163,7 @@ def test_runs_every_tool_requested_in_one_turn() -> None:
     ran: list[tuple[str, dict[str, object]]] = []
 
     def make(name: str):
-        def run(args: dict[str, object]) -> str:
+        async def run(args: dict[str, object]) -> str:
             ran.append((name, args))
             return f"{name}-done"
 
@@ -185,7 +189,7 @@ def test_runs_every_tool_requested_in_one_turn() -> None:
 
     asyncio.run(gather())
 
-    assert ran == [("first", {"x": 1}), ("second", {"y": 2})]
+    assert sorted(ran) == [("first", {"x": 1}), ("second", {"y": 2})]
     assert model.seen[1] == [
         message.Message(message.Role.USER, [message.Text("go")]),
         message.Message(
@@ -206,7 +210,10 @@ def test_runs_every_tool_requested_in_one_turn() -> None:
 
 
 def test_assistant_turn_keeps_text_before_tool_calls() -> None:
-    only = tool.Tool("only", "Only.", {}, lambda args: "ok")
+    async def run(args: dict[str, object]) -> str:
+        return "ok"
+
+    only = tool.Tool("only", "Only.", {}, run)
     model = _TurnModel(
         [
             [
@@ -258,18 +265,20 @@ class _RecordingLogger:
 
 
 def test_logs_user_input_model_output_and_tool_results() -> None:
-    ran = lambda args: "4"
+    async def ran(args: dict[str, object]) -> str:
+        return "4"
+
     adder = tool.Tool("add", "Add two numbers.", {}, ran)
 
     class _ToolThenAnswer:
         def __init__(self) -> None:
             self._turn = 0
 
-        def stream(
+        async def stream(
             self,
             messages: Sequence[message.Message],
             tools: Sequence[tool.Tool] = (),
-        ) -> Iterator[streaming.Event]:
+        ) -> AsyncIterator[streaming.Event]:
             self._turn += 1
             if self._turn == 1:
                 yield streaming.ThinkingDelta("thinking about it")

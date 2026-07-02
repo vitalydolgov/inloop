@@ -1,7 +1,7 @@
 """Together AI Chat Completions API adapter."""
 
 import json
-from collections.abc import Iterator, Sequence
+from collections.abc import AsyncIterator, Sequence
 
 import together
 
@@ -79,7 +79,7 @@ class TogetherModel:
 
     def __init__(
         self,
-        client: together.Together,
+        client: together.AsyncTogether,
         model: str,
         max_tokens: int,
     ) -> None:
@@ -87,11 +87,11 @@ class TogetherModel:
         self._model = model
         self._max_tokens = max_tokens
 
-    def stream(
+    async def stream(
         self,
         messages: Sequence[message.Message],
         tools: Sequence[tool.Tool] = (),
-    ) -> Iterator[streaming.Event]:
+    ) -> AsyncIterator[streaming.Event]:
         """Stream a response to the conversation, offering the given tools."""
         kwargs: dict[str, object] = {
             "model": self._model,
@@ -109,7 +109,7 @@ class TogetherModel:
         in_thinking = False
         in_text = False
 
-        for chunk in self._client.chat.completions.create(**kwargs):
+        async for chunk in await self._client.chat.completions.create(**kwargs):
             choice = chunk.choices[0] if chunk.choices else None
             if choice is None:
                 continue

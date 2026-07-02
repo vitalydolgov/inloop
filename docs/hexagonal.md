@@ -4,7 +4,7 @@ Ports are `Protocol` interfaces declared in `domain` or `app`. `infra` provides 
 
 ## `Model` — `domain/model.py`
 
-A language model that answers a conversation as a stream of events.
+A language model that answers a conversation as an async stream of events.
 
 ## `Config` — `app/config.py`
 
