@@ -2,17 +2,18 @@
 
 import asyncio
 import json
-import readline  # noqa: F401
-import signal
 import sys
 from collections.abc import AsyncIterator
 from pathlib import Path
 
+import rich.box
 import rich.console
-import rich.live
-from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.text import Text
+
+from prompt_toolkit import PromptSession
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.patch_stdout import patch_stdout
 
 from inloop.app.agent import Agent
 from inloop.domain import streaming
@@ -24,132 +25,99 @@ from inloop.infra.plain_logger import PlainLogger
 console = rich.console.Console()
 
 
-async def stdin_lines() -> AsyncIterator[str]:
-    """Yield lines from stdin without blocking the event loop."""
+async def piped_lines() -> AsyncIterator[str]:
+    """Yield stripped, non-empty lines from non-interactive stdin."""
     loop = asyncio.get_running_loop()
-    interactive = sys.stdin.isatty()
-    prompt = "\001\033[2m\002› \001\033[0m\002" if interactive else ""
+    while True:
+        line = await loop.run_in_executor(None, sys.stdin.readline)
+        if not line:
+            break
+        text = line.strip()
+        if text:
+            yield text
+
+
+async def prompt_lines(session: PromptSession) -> AsyncIterator[str]:
+    """Yield user messages from a prompt that stays available while replies stream."""
     while True:
         try:
-            line = await loop.run_in_executor(None, input, prompt)
+            line = await session.prompt_async("› ")
         except EOFError:
-            if interactive:
-                console.print()
             break
-
-        if not interactive:
-            yield line
-            continue
-
-        sys.stdout.write("\033[1A\033[2K")
-        sys.stdout.flush()
-        if line.strip():
-            console.print(f"[bold]› {line.strip()}[/bold]")
-            console.print()
-        yield line
-
-
-async def user_input() -> AsyncIterator[str]:
-    """Yield meaningful user messages for the chat."""
-    async for line in stdin_lines():
         text = line.strip()
         if text:
             yield text
 
 
 async def render(events: AsyncIterator[streaming.Event]) -> None:
-    """Present reply events as the app layer streams them."""
-    live = rich.live.Live(console=console, refresh_per_second=20)
-    text_buffer = ""
-    at_bol = True
-    at_blank_line = True
-
-    def separate() -> None:
-        nonlocal at_bol, at_blank_line
-        if not at_bol:
-            console.print()
-        if not at_blank_line:
-            console.print()
-        at_bol = True
-        at_blank_line = True
+    """Present reply events as the app layer streams them, above a persistent prompt."""
+    buffer = ""
 
     def handle(event: streaming.Event) -> None:
-        nonlocal text_buffer, at_bol, at_blank_line
+        nonlocal buffer
         match event:
             case streaming.ThinkingPhase.STARTED:
-                console.print(Text("Thinking...", style="italic dim"), end="")
-                at_bol = False
-                at_blank_line = False
+                console.print(Text("Thinking…", style="italic dim"))
 
             case streaming.ThinkingDelta(_):
                 pass
 
             case streaming.ThinkingPhase.ENDED:
-                sys.stdout.write("\r\033[2K")
-                sys.stdout.flush()
-                at_bol = True
-                at_blank_line = True
+                pass
 
             case streaming.TextPhase.STARTED:
-                text_buffer = ""
-                live.start()
+                buffer = ""
 
             case streaming.TextDelta(delta):
-                text_buffer += delta
-                live.update(Markdown(text_buffer))
+                buffer += delta
+                while "\n" in buffer:
+                    line, buffer = buffer.split("\n", 1)
+                    console.print(line, markup=False, highlight=False)
 
             case streaming.TextPhase.ENDED:
-                live.stop()
-                at_bol = True
-                at_blank_line = not text_buffer
-                separate()
+                if buffer:
+                    console.print(buffer, markup=False, highlight=False)
+                    buffer = ""
+                console.print()
 
             case streaming.ToolUse(_, name, tool_input):
-                live.stop()
                 console.print(f"[dim cyan]⛭ {name} {json.dumps(tool_input)}[/dim cyan]")
-                at_bol = True
-                at_blank_line = False
 
-            case streaming.MessageCompleted(_, stop_reason):
-                live.stop()
-                separate()
+            case streaming.MessageCompleted(_, _):
+                pass
 
             case streaming.Interrupted():
-                live.stop()
-                separate()
                 console.print("[red]⨯ interrupted[/red]")
-                at_bol = True
-                at_blank_line = False
 
             case streaming.Failed(error):
-                live.stop()
-                separate()
                 console.print(f"[red]⨯ error: {error}[/red]")
-                at_bol = True
-                at_blank_line = False
 
-    try:
-        async for event in events:
-            handle(event)
-    finally:
-        if live.is_started:
-            live.stop()
+    async for event in events:
+        handle(event)
+
 
 async def chat(agent: Agent) -> None:
-    """Drive the interactive chat, interrupting the current reply on ^C."""
-    if sys.stdin.isatty():
-        console.print(Panel(
-            "[bold]\u2192 [blue]Ctrl+C[/blue] to interrupt · [blue]Ctrl+D[/blue] to exit[/bold]",
-            border_style="dim",
-            box=rich.box.ROUNDED,
-            padding=(0, 1),
-        ))
-    loop = asyncio.get_running_loop()
-    loop.add_signal_handler(signal.SIGINT, agent.interrupt)
-    try:
-        await render(agent.events(user_input()))
-    finally:
-        loop.remove_signal_handler(signal.SIGINT)
+    """Drive the interactive chat, keeping the input prompt available while replies stream."""
+    if not sys.stdin.isatty():
+        await render(agent.events(piped_lines()))
+        return
+
+    console.print(Panel(
+        "[bold]→ [blue]Ctrl+C[/blue] to interrupt · [blue]Ctrl+D[/blue] to exit[/bold]",
+        border_style="dim",
+        box=rich.box.ROUNDED,
+        padding=(0, 1),
+    ))
+
+    bindings = KeyBindings()
+
+    @bindings.add("c-c")
+    def _(event):
+        agent.interrupt()
+
+    session: PromptSession = PromptSession(key_bindings=bindings)
+    with patch_stdout():
+        await render(agent.events(prompt_lines(session)))
 
 
 def main():

@@ -14,6 +14,8 @@ from inloop.domain import tool
 
 INTERRUPTED_NOTICE = "[Interrupted by user]"
 
+_END = object()
+
 SUBAGENT_TOOL = "agent__spawn"
 
 SUBAGENT_DESCRIPTION = (
@@ -64,31 +66,67 @@ class Agent:
         self._children = []
         self._child_count = 0
         self._interrupted = False
+        self._input_ended = False
         self.conversation = Conversation()
         """The conversation transcript owned by this agent."""
 
     async def events(
         self, messages: AsyncIterator[str]
     ) -> AsyncIterator[streaming.Event]:
-        """Ask the model for each message, running any tools it requests."""
-        async for user_text in messages:
-            self._log(logger.UserMessage(user_text))
-            self.conversation.add(Message(Role.USER, [message.Text(user_text)]))
-
-            self._interrupted = False
+        """Ask the model for each message, injecting any typed mid-run as steering."""
+        self._input_ended = False
+        inbox: asyncio.Queue = asyncio.Queue()
+        pump = asyncio.create_task(self._pump(messages, inbox))
+        try:
             while True:
-                stop = {}
-                async for event in self._agent_turn(stop):
-                    self._log(event)
-                    yield event
-                if stop:
+                if self._input_ended and inbox.empty():
                     break
+                first = await inbox.get()
+                if first is _END:
+                    break
+                self._begin_user_turn(first)
+
+                self._interrupted = False
+                while True:
+                    stop = {}
+                    async for event in self._agent_turn(stop):
+                        self._log(event)
+                        yield event
+                    if stop:
+                        break
+                    for steer in self._drain(inbox):
+                        self._begin_user_turn(steer)
+        finally:
+            pump.cancel()
+            try:
+                await pump
+            except asyncio.CancelledError:
+                pass
 
     def interrupt(self):
         """Ask the current reply to stop streaming as soon as possible, cascading to subagents."""
         self._interrupted = True
         for child in self._children:
             child.interrupt()
+
+    async def _pump(self, messages, inbox):
+        async for text in messages:
+            await inbox.put(text)
+        await inbox.put(_END)
+
+    def _drain(self, inbox):
+        texts = []
+        while not inbox.empty():
+            item = inbox.get_nowait()
+            if item is _END:
+                self._input_ended = True
+            else:
+                texts.append(item)
+        return texts
+
+    def _begin_user_turn(self, text):
+        self._log(logger.UserMessage(text))
+        self.conversation.add(Message(Role.USER, [message.Text(text)]))
 
     def _log(self, entry):
         if self._logger:

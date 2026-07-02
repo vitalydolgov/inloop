@@ -423,6 +423,111 @@ def test_each_turn_includes_prior_turns() -> None:
     ]
 
 
+def test_steering_message_injected_between_tool_turns() -> None:
+    tool_ran = asyncio.Event()
+
+    async def run(args: dict[str, object]) -> str:
+        tool_ran.set()
+        return "done"
+
+    work = tool.Tool("work", "Work.", {}, run)
+    model = _TurnModel(
+        [
+            [
+                streaming.ToolUse(id="c1", name="test__work", input={}),
+                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+            ],
+            [streaming.MessageCompleted(text="acknowledged", stop_reason="end_turn")],
+        ]
+    )
+    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [work])])
+
+    async def messages() -> AsyncIterator[str]:
+        yield "start the task"
+        await tool_ran.wait()
+        yield "actually, focus on X"
+
+    async def gather() -> None:
+        async for _ in chat_agent.events(messages()):
+            pass
+
+    asyncio.run(gather())
+
+    assert model.seen[1] == [
+        message.Message(message.Role.USER, [message.Text("start the task")]),
+        message.Message(
+            message.Role.ASSISTANT, [message.ToolCall("c1", "test__work", {})]
+        ),
+        message.Message(message.Role.USER, [message.ToolResult("c1", "done")]),
+        message.Message(message.Role.USER, [message.Text("actually, focus on X")]),
+    ]
+
+
+def test_steered_message_is_logged() -> None:
+    tool_ran = asyncio.Event()
+
+    async def run(args: dict[str, object]) -> str:
+        tool_ran.set()
+        return "done"
+
+    work = tool.Tool("work", "Work.", {}, run)
+    model = _TurnModel(
+        [
+            [
+                streaming.ToolUse(id="c1", name="test__work", input={}),
+                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+            ],
+            [streaming.MessageCompleted(text="ok", stop_reason="end_turn")],
+        ]
+    )
+    recorder = _RecordingLogger()
+    chat_agent = agent.Agent(
+        model, extensions=[extension.Extension("test", [work])], logger=recorder
+    )
+
+    async def messages() -> AsyncIterator[str]:
+        yield "start"
+        await tool_ran.wait()
+        yield "steer me"
+
+    async def gather() -> None:
+        async for _ in chat_agent.events(messages()):
+            pass
+
+    asyncio.run(gather())
+
+    assert ("main", logger.UserMessage("steer me")) in recorder.entries
+
+
+def test_events_can_be_called_again_after_a_tool_turn() -> None:
+    async def run(args: dict[str, object]) -> str:
+        return "done"
+
+    work = tool.Tool("work", "Work.", {}, run)
+    model = _TurnModel(
+        [
+            [
+                streaming.ToolUse(id="c1", name="test__work", input={}),
+                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+            ],
+            [streaming.MessageCompleted(text="first", stop_reason="end_turn")],
+            [streaming.MessageCompleted(text="second", stop_reason="end_turn")],
+        ]
+    )
+    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [work])])
+
+    async def gather() -> list[streaming.Event]:
+        async for _ in chat_agent.events(_stream(["go"])):
+            pass
+        return [event async for event in chat_agent.events(_stream(["again"]))]
+
+    events = asyncio.run(gather())
+
+    assert events == [
+        streaming.MessageCompleted(text="second", stop_reason="end_turn"),
+    ]
+
+
 def test_subagent_runs_and_returns_result() -> None:
     model = _TurnModel(
         [

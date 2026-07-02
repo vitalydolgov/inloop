@@ -35,7 +35,8 @@ resources = { path = "extensions/resources", editable = true }
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
-    "rich>=13.0.0"
+    "rich>=13.0.0",
+    "prompt_toolkit>=3.0.0"
 ]
 bundled_extensions = [
     "browser",
