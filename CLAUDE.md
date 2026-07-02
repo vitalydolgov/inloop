@@ -26,6 +26,11 @@ Dependency rules:
 - Do not document helper functions.
 - Import modules directly — do not use `__init__.py` to re-export or aggregate imports.
 - When returning a sequence, always use a list — never a tuple.
+
+### Type annotations
+
+- Don't annotate private methods and functions (prefixed `_`) with types — only public ones.
+- Don't annotate a `-> None` return type.
 - Don't annotate a local variable with a port's `Protocol` type when assigning it a concrete implementation.
 
 ## Testing
@@ -36,4 +41,3 @@ Dependency rules:
 
 - Commit messages are a single title line only — no body.
 - Keep only the essential action and object in the title; drop trailing qualifiers that add detail without disambiguating the change.
-- When a commit only changes CLAUDE.md, title it "Update CLAUDE.md".
