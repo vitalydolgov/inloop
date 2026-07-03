@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from inloop.app import logger
+from inloop.domain import message
 from inloop.domain import streaming
 
 
@@ -18,16 +19,26 @@ class PlainLogger:
         self._thinking: dict[str, str] = {}
         self._text: dict[str, str] = {}
 
-    def _payload(self, entry, agent_id):
-        match entry:
-            case logger.UserMessage(text):
-                return {"type": "user_message", "text": text}
-            case logger.ToolResult(call, content):
+    def _block(self, block):
+        match block:
+            case message.Text(text):
+                return {"type": "text", "text": text}
+            case message.ToolCall(id, name, input):
+                return {"type": "tool_call", "id": id, "name": name, "input": input}
+            case message.ToolResult(tool_call_id, content):
                 return {
                     "type": "tool_result",
-                    "tool_call_id": call.id,
-                    "name": call.name,
+                    "tool_call_id": tool_call_id,
                     "content": content,
+                }
+
+    def _payload(self, entry, agent_id):
+        match entry:
+            case message.Message(role, content):
+                return {
+                    "type": "message",
+                    "role": role.value,
+                    "content": [self._block(block) for block in content],
                 }
             case streaming.ThinkingDelta(text):
                 self._thinking[agent_id] = self._thinking.get(agent_id, "") + text
@@ -56,7 +67,7 @@ class PlainLogger:
                 text = self._text.pop(agent_id, "")
                 return {"type": "failed", "error": error, "text": text}
 
-    def log(self, entry: logger.Entry, agent_id: str = "main") -> None:
+    async def log(self, entry: logger.Entry, agent_id: str = "main") -> None:
         """Append the entry as a timestamped `time {payload}` line, folding streamed deltas into their phase's end."""
         payload = self._payload(entry, agent_id)
         if payload is None:

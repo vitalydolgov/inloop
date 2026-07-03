@@ -254,7 +254,7 @@ class _RecordingLogger:
     def __init__(self) -> None:
         self.entries: list[tuple[str, logger.Entry]] = []
 
-    def log(self, entry: logger.Entry, agent_id: str = "main") -> None:
+    async def log(self, entry: logger.Entry, agent_id: str = "main") -> None:
         self.entries.append((agent_id, entry))
 
 
@@ -298,13 +298,24 @@ def test_logs_user_input_model_output_and_tool_results() -> None:
     asyncio.run(gather())
 
     assert recorder.entries == [
-        ("main", logger.UserMessage("add 2 and 2")),
+        ("main", message.Message(message.Role.USER, [message.Text("add 2 and 2")])),
         ("main", streaming.ThinkingDelta("thinking about it")),
         ("main", streaming.ToolUse(id="t1", name="test__add", input={"a": 2, "b": 2})),
         ("main", streaming.MessageCompleted(text="", stop_reason="tool_use")),
-        ("main", logger.ToolResult(message.ToolCall("t1", "test__add", {"a": 2, "b": 2}), "4")),
+        (
+            "main",
+            message.Message(
+                message.Role.ASSISTANT,
+                [message.ToolCall("t1", "test__add", {"a": 2, "b": 2})],
+            ),
+        ),
+        ("main", message.Message(message.Role.USER, [message.ToolResult("t1", "4")])),
         ("main", streaming.TextDelta("the sum is 4")),
         ("main", streaming.MessageCompleted(text="the sum is 4", stop_reason="end_turn")),
+        (
+            "main",
+            message.Message(message.Role.ASSISTANT, [message.Text("the sum is 4")]),
+        ),
     ]
 
 
@@ -423,6 +434,114 @@ def test_each_turn_includes_prior_turns() -> None:
     ]
 
 
+def test_steering_message_injected_between_tool_turns() -> None:
+    tool_ran = asyncio.Event()
+
+    async def run(args: dict[str, object]) -> str:
+        tool_ran.set()
+        return "done"
+
+    work = tool.Tool("work", "Work.", {}, run)
+    model = _TurnModel(
+        [
+            [
+                streaming.ToolUse(id="c1", name="test__work", input={}),
+                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+            ],
+            [streaming.MessageCompleted(text="acknowledged", stop_reason="end_turn")],
+        ]
+    )
+    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [work])])
+
+    async def messages() -> AsyncIterator[str]:
+        yield "start the task"
+        await tool_ran.wait()
+        yield "actually, focus on X"
+
+    async def gather() -> None:
+        async for _ in chat_agent.events(messages()):
+            pass
+
+    asyncio.run(gather())
+
+    assert model.seen[1] == [
+        message.Message(message.Role.USER, [message.Text("start the task")]),
+        message.Message(
+            message.Role.ASSISTANT, [message.ToolCall("c1", "test__work", {})]
+        ),
+        message.Message(message.Role.USER, [message.ToolResult("c1", "done")]),
+        message.Message(message.Role.USER, [message.Text("actually, focus on X")]),
+    ]
+
+
+def test_steered_message_is_logged() -> None:
+    tool_ran = asyncio.Event()
+
+    async def run(args: dict[str, object]) -> str:
+        tool_ran.set()
+        return "done"
+
+    work = tool.Tool("work", "Work.", {}, run)
+    model = _TurnModel(
+        [
+            [
+                streaming.ToolUse(id="c1", name="test__work", input={}),
+                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+            ],
+            [streaming.MessageCompleted(text="ok", stop_reason="end_turn")],
+        ]
+    )
+    recorder = _RecordingLogger()
+    chat_agent = agent.Agent(
+        model, extensions=[extension.Extension("test", [work])], logger=recorder
+    )
+
+    async def messages() -> AsyncIterator[str]:
+        yield "start"
+        await tool_ran.wait()
+        yield "steer me"
+
+    async def gather() -> None:
+        async for _ in chat_agent.events(messages()):
+            pass
+
+    asyncio.run(gather())
+
+    assert (
+        "main",
+        message.Message(message.Role.USER, [message.Text("steer me")]),
+    ) in recorder.entries
+
+
+def test_events_can_be_called_again_after_a_tool_turn() -> None:
+    async def run(args: dict[str, object]) -> str:
+        return "done"
+
+    work = tool.Tool("work", "Work.", {}, run)
+    model = _TurnModel(
+        [
+            [
+                streaming.ToolUse(id="c1", name="test__work", input={}),
+                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+            ],
+            [streaming.MessageCompleted(text="first", stop_reason="end_turn")],
+            [streaming.MessageCompleted(text="second", stop_reason="end_turn")],
+        ]
+    )
+    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [work])])
+
+    async def gather() -> list[streaming.Event]:
+        async for _ in chat_agent.events(_stream(["go"])):
+            pass
+        return [event async for event in chat_agent.events(_stream(["again"]))]
+
+    events = asyncio.run(gather())
+
+    assert events == [
+        streaming.MessageCompleted(text="second", stop_reason="end_turn"),
+    ]
+
+
 def test_subagent_runs_and_returns_result() -> None:
     model = _TurnModel(
         [
@@ -500,8 +619,14 @@ def test_parent_logs_subagent_events_tagged_with_distinct_id() -> None:
 
     asyncio.run(gather())
 
-    assert ("main", logger.UserMessage("delegate")) in recorder.entries
-    assert ("sub-1", logger.UserMessage("do it")) in recorder.entries
+    assert (
+        "main",
+        message.Message(message.Role.USER, [message.Text("delegate")]),
+    ) in recorder.entries
+    assert (
+        "sub-1",
+        message.Message(message.Role.USER, [message.Text("do it")]),
+    ) in recorder.entries
     assert (
         "sub-1",
         streaming.MessageCompleted(text="child answer", stop_reason="end_turn"),
@@ -563,7 +688,7 @@ class _InterruptingLogger:
         self.agent: agent.Agent | None = None
         self._fired = False
 
-    def log(self, entry: logger.Entry, agent_id: str = "main") -> None:
+    async def log(self, entry: logger.Entry, agent_id: str = "main") -> None:
         self.entries.append((agent_id, entry))
         if not self._fired and agent_id == "sub-1" and isinstance(entry, streaming.TextDelta):
             self._fired = True

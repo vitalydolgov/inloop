@@ -28,10 +28,10 @@ An agent is a language model wrapped in a harness. The model reasons; the harnes
 
 At the center is one turn, run over and over until the work is done:
 
-- **Context** — assemble what the model sees this step: prompt, transcript, retrieved memory, tool definitions.
-- **Observe** — take in the latest input: a user message, or the results of the previous step's actions.
-- **Reason** — let the model think about what to do next.
-- **Act** — call tools, feed their results back into context, and loop.
+- **Context** — load what the agent knows going in: prompt, memory, relevant background.
+- **Observe** — perceive the present state and the outcome of prior actions.
+- **Reason** — decide what to do based on those observations.
+- **Act** — execute, often via Tools & Skills, producing new results to observe on the next loop.
 
 Around the loop sit the harness capabilities — each a seam where the harness extends or constrains the model:
 
@@ -142,10 +142,11 @@ agent = Agent(
 )
 ```
 
-Feed it messages through `agent.events(messages)`, an async generator over `streaming.Event`s — see `demo/main.py` for a full interactive terminal loop.
+Drive it with `agent.events(messages)`: feed in an async stream of user messages and render the async stream of `streaming.Event`s it yields back. See `demo/main.py` for a full interactive terminal loop, and [docs/loop.md](docs/loop.md) for how turns, steering, interrupts, and subagents fit together.
 
 ## Documentation
 
+- [The agent loop](docs/loop.md) — turns, streaming events, steering, interrupts, and subagents
 - [Extensions](docs/extensions.md) — how to create and install extensions
 - [Providers](docs/providers.md) — supported LLM backends, how to configure them, and how to write your own
 - [Configuration](docs/configuration.md) — environment variables and `.env` settings

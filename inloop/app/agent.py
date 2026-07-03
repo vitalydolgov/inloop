@@ -4,7 +4,9 @@ import asyncio
 from collections.abc import AsyncIterator, Sequence
 
 from inloop.app.conversation import Conversation
+from inloop.app.inbox import Inbox
 from inloop.app import logger
+from inloop.app.logger import logged, logged_stream
 from inloop.domain import message
 from inloop.domain.message import Message, Role
 from inloop.domain import model
@@ -66,23 +68,25 @@ class Agent:
         self._interrupted = False
         self.conversation = Conversation()
         """The conversation transcript owned by this agent."""
+        self.conversation.add = logged(self._log)(self.conversation.add)
+        self._agent_turn = logged_stream(self._log)(self._agent_turn)
 
     async def events(
         self, messages: AsyncIterator[str]
     ) -> AsyncIterator[streaming.Event]:
-        """Ask the model for each message, running any tools it requests."""
-        async for user_text in messages:
-            self._log(logger.UserMessage(user_text))
-            self.conversation.add(Message(Role.USER, [message.Text(user_text)]))
-
-            self._interrupted = False
-            while True:
-                stop = {}
-                async for event in self._agent_turn(stop):
-                    self._log(event)
-                    yield event
-                if stop:
-                    break
+        """Ask the model for each message, injecting any typed mid-run as steering."""
+        async with Inbox(messages) as inbox:
+            async for text in inbox:
+                await self.conversation.add(Message(Role.USER, [message.Text(text)]))
+                self._interrupted = False
+                while True:
+                    stop = {}
+                    async for event in self._agent_turn(stop):
+                        yield event
+                    if stop:
+                        break
+                    for steer in inbox.drain():
+                        await self.conversation.add(Message(Role.USER, [message.Text(steer)]))
 
     def interrupt(self):
         """Ask the current reply to stop streaming as soon as possible, cascading to subagents."""
@@ -90,9 +94,9 @@ class Agent:
         for child in self._children:
             child.interrupt()
 
-    def _log(self, entry):
+    async def _log(self, entry):
         if self._logger:
-            self._logger.log(entry, self._id)
+            await self._logger.log(entry, self._id)
 
     async def _spawn(self, args):
         self._child_count += 1
@@ -146,7 +150,7 @@ class Agent:
 
         if self._interrupted:
             text = f"{partial}\n\n{INTERRUPTED_NOTICE}" if partial else INTERRUPTED_NOTICE
-            self.conversation.add(Message(Role.ASSISTANT, [message.Text(text)]))
+            await self.conversation.add(Message(Role.ASSISTANT, [message.Text(text)]))
             yield streaming.Interrupted()
             stop["interrupted"] = True
             return
@@ -154,7 +158,6 @@ class Agent:
         async def execute(call):
             tool = self._tools[call.name]
             content = await tool.execute(call.input)
-            self._log(logger.ToolResult(call, content))
             return message.ToolResult(call.id, content)
 
         try:
@@ -166,9 +169,9 @@ class Agent:
 
         assistant_blocks = [*texts, *calls]
         if assistant_blocks:
-            self.conversation.add(Message(Role.ASSISTANT, assistant_blocks))
+            await self.conversation.add(Message(Role.ASSISTANT, assistant_blocks))
 
         if results:
-            self.conversation.add(Message(Role.USER, results))
+            await self.conversation.add(Message(Role.USER, results))
         else:
             stop["done"] = True

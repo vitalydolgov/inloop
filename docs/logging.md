@@ -6,7 +6,7 @@ It's optional. Omit it and the agent runs exactly as before, with no logging ove
 
 ## Agent ID
 
-Each entry is tagged with the id of the agent that produced it: `main` for the top agent, `sub-1`, `sub-2`, … for subagents it spawns. A subagent shares its parent's logger, so parent and children — including concurrent children — interleave in one log, told apart by that id.
+Each entry is tagged with the id of the agent that produced it: `main` for the top agent, `sub-1`, `sub-2`, … for the [subagents](loop.md) it spawns. Because a subagent shares its parent's logger, parent and children — including concurrent children — interleave in one log, told apart by that id.
 
 ## Built-in logger
 
