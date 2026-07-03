@@ -47,6 +47,7 @@ class Agent:
         model: model.Model,
         subagent_model: model.Model | None = None,
         extensions: Sequence[extension.Extension] = (),
+        tools: Sequence[tool.Tool] = (),
         logger: logger.Logger | None = None,
         agent_id: str = "main",
         can_spawn: bool = True,
@@ -54,9 +55,12 @@ class Agent:
         self._model = model
         self._subagent_model = subagent_model or model
         self._extensions = list(extensions)
+        self._builtin_tools = list(tools)
         self._tools = {}
         for ext in extensions:
             self._tools.update(ext.tools_by_name())
+        for t in self._builtin_tools:
+            self._tools[t.name] = t
         if can_spawn:
             self._tools[SUBAGENT_TOOL] = tool.Tool(
                 SUBAGENT_TOOL, SUBAGENT_DESCRIPTION, SUBAGENT_PARAMETERS, self._spawn
@@ -103,6 +107,7 @@ class Agent:
         child = Agent(
             self._subagent_model,
             extensions=self._extensions,
+            tools=self._builtin_tools,
             logger=self._logger,
             agent_id=f"sub-{self._child_count}",
             can_spawn=False,

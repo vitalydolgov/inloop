@@ -112,6 +112,23 @@ def test_offers_its_tools_to_the_model() -> None:
     assert model.offered_tools == [[namespaced]]
 
 
+def test_offers_builtin_tools_under_their_bare_name() -> None:
+    async def run(args: dict[str, object]) -> str:
+        return "content"
+
+    reader = tool.Tool("read", "Read a file.", {"type": "object", "properties": {}}, run)
+    model = _ScriptedModel(["sure"])
+    chat_agent = agent.Agent(model, tools=[reader], can_spawn=False)
+
+    async def gather() -> None:
+        async for _ in chat_agent.events(_stream(["hi"])):
+            pass
+
+    asyncio.run(gather())
+
+    assert model.offered_tools == [[reader]]
+
+
 def test_runs_requested_tool_and_feeds_result_back() -> None:
     ran: list[dict[str, object]] = []
 

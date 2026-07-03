@@ -18,6 +18,10 @@ Records entries produced while the agent runs. Each entry is tagged with the id 
 
 A server hosting tools the agent can list and call, such as an MCP server. Implementations provide `connect`/`aclose` lifecycle hooks so the app layer can manage their transport. The adapter is `McpToolServer` (`infra/mcp_server.py`), which speaks the Model Context Protocol over stdio or HTTP.
 
+### `FileSystem` — `app/filesystem.py`
+
+Reads files from the local system. The built-in `read` tool (`app/builtin/read.py`) serves file contents through it. The adapter is `LocalFileSystem` (`infra/local_filesystem.py`), which reads from disk.
+
 ## Configuration
 
 ### `Config` — `app/config.py`

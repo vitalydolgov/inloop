@@ -19,12 +19,14 @@ from prompt_toolkit.styles import Style
 
 from inloop.app.agent import Agent
 from inloop.app import tool_server_config
+from inloop.app.builtin import read
 from inloop.domain import streaming
 
 from inloop.infra import app_dirs
 from inloop.infra import providers
 from inloop.infra import toml_config
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
+from inloop.infra.local_filesystem import LocalFileSystem
 from inloop.infra.plain_logger import PlainLogger
 
 
@@ -208,10 +210,12 @@ async def amain():
 
     async with tool_server_config.connected(config.mcp) as mcp_extensions:
         registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
+        filesystem = LocalFileSystem()
         agent = Agent(
             model=model,
             subagent_model=subagent_model,
             extensions=[*registry.load(), *mcp_extensions],
+            tools=[read.read_tool(filesystem)],
             logger=PlainLogger(app_dirs.log_dir()),
         )
         await chat(agent)
