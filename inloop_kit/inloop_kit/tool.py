@@ -1,11 +1,20 @@
-"""Decorators for implementing extension tools."""
+"""A capability the model may request to use."""
 
 import asyncio
 import inspect
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from functools import wraps
 
-from inloop.domain.tool import Tool
+
+@dataclass
+class Tool:
+    """A named capability the model can ask to invoke, described by its inputs."""
+
+    name: str
+    description: str
+    parameters: dict[str, object]
+    execute: Callable[[dict[str, object]], Awaitable[str]]
 
 
 def _transform(fn: Callable) -> Callable:

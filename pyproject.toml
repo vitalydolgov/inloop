@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "inloop-kit",
     "python-dotenv>=1.2.2",
 ]
 
@@ -28,6 +29,7 @@ probe = "inloop.cmd.probe:main"
 default-groups = ["dev", "bundled_extensions"]
 
 [tool.uv.sources]
+inloop-kit = { path = "inloop_kit", editable = true }
 browser = { path = "extensions/browser", editable = true }
 calculator = { path = "extensions/calculator", editable = true }
 resources = { path = "extensions/resources", editable = true }

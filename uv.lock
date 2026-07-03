@@ -158,13 +158,13 @@ name = "browser"
 version = "0.1.0"
 source = { editable = "extensions/browser" }
 dependencies = [
-    { name = "inloop" },
+    { name = "inloop-kit" },
     { name = "playwright" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "inloop", editable = "." },
+    { name = "inloop-kit", editable = "inloop_kit" },
     { name = "playwright" },
 ]
 
@@ -173,11 +173,11 @@ name = "calculator"
 version = "0.1.0"
 source = { editable = "extensions/calculator" }
 dependencies = [
-    { name = "inloop" },
+    { name = "inloop-kit" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "inloop", editable = "." }]
+requires-dist = [{ name = "inloop-kit", editable = "inloop_kit" }]
 
 [[package]]
 name = "certifi"
@@ -495,6 +495,7 @@ name = "inloop"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "inloop-kit" },
     { name = "python-dotenv" },
 ]
 
@@ -522,7 +523,10 @@ together = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "python-dotenv", specifier = ">=1.2.2" }]
+requires-dist = [
+    { name = "inloop-kit", editable = "inloop_kit" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+]
 
 [package.metadata.requires-dev]
 anthropic = [{ name = "anthropic", specifier = ">=0.112.0" }]
@@ -542,6 +546,11 @@ telegram = [
     { name = "pyngrok", specifier = ">=7.0" },
 ]
 together = [{ name = "together", specifier = ">=2.19.0" }]
+
+[[package]]
+name = "inloop-kit"
+version = "0.1.0"
+source = { editable = "inloop_kit" }
 
 [[package]]
 name = "jiter"
@@ -1064,13 +1073,13 @@ name = "resources"
 version = "0.1.0"
 source = { editable = "extensions/resources" }
 dependencies = [
-    { name = "inloop" },
+    { name = "inloop-kit" },
     { name = "requests" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "inloop", editable = "." },
+    { name = "inloop-kit", editable = "inloop_kit" },
     { name = "requests" },
 ]
 

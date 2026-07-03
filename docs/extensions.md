@@ -13,7 +13,7 @@ greeter/
     └── __init__.py
 ```
 
-`pyproject.toml` declares the entry point and depends on `inloop`:
+`pyproject.toml` declares the entry point and depends on `inloop-kit`, the extension toolkit — not the whole framework:
 
 ```toml
 [project]
@@ -21,30 +21,30 @@ name = "greeter"
 version = "0.1.0"
 description = "Greets people by name."
 requires-python = ">=3.13"
-dependencies = ["inloop"]
+dependencies = ["inloop-kit"]
 
 [project.entry-points."inloop.extensions"]
 greeter = "greeter:EXTENSION"
 
 [tool.uv.sources]
-inloop = { git = "https://github.com/vitalydolgov/inloop.git" }
+inloop-kit = { git = "https://github.com/vitalydolgov/inloop.git", subdirectory = "inloop_kit" }
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 ```
 
-`inloop` is not published to an index, so point at it with the git source above. Drop the `[tool.uv.sources]` block if you are developing the extension inside the `inloop-builtin` submodule, where bundled extensions reference the framework by path.
+`inloop-kit` carries only the `Extension` and `tool` API an extension needs, with no runtime dependencies. It is not published to an index, so point at it with the git source above. Drop the `[tool.uv.sources]` block if you are developing the extension inside the `inloop-builtin` submodule, where bundled extensions reference the framework by path.
 
-`greeter/__init__.py` wraps each function with `@contrib.tool` and collects them into an `EXTENSION`:
+`greeter/__init__.py` wraps each function with `@tool` and collects them into an `EXTENSION`:
 
 ```python
 """Greeter extension: greet a person by name."""
 
-from inloop import contrib
+from inloop_kit import Extension, tool
 
 
-@contrib.tool(
+@tool(
     name="greet",
     description="Returns a friendly greeting addressed to the given name.",
     parameters={
@@ -62,10 +62,10 @@ def greet(args: dict[str, object]) -> str:
     return f"Hello, {args['name']}!"
 
 
-EXTENSION = contrib.Extension(name="greeter", tools=[greet])
+EXTENSION = Extension(name="greeter", tools=[greet])
 ```
 
-`@contrib.tool` turns a function into a tool. The function receives the parsed arguments as a dict and returns a string; a function annotated `-> None` returns `"ok"`. The agent calls each tool by its namespaced name, `<extension>__<tool>` (here `greeter__greet`). An exception raised by the function ends the turn as a `Failed` event rather than being fed back to the model.
+`@tool` turns a function into a tool. The function receives the parsed arguments as a dict and returns a string; a function annotated `-> None` returns `"ok"`. The agent calls each tool by its namespaced name, `<extension>__<tool>` (here `greeter__greet`). An exception raised by the function ends the turn as a `Failed` event rather than being fed back to the model.
 
 ### Tool descriptions
 
