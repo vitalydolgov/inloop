@@ -2,17 +2,17 @@
 
 import asyncio
 import json
-import readline  # noqa: F401
-import signal
 import sys
-from collections.abc import AsyncIterator
 from pathlib import Path
 
+import rich.box
 import rich.console
-import rich.live
-from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.text import Text
+from prompt_toolkit import PromptSession
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.styles import Style
 
 from inloop.app.agent import Agent
 from inloop.domain import streaming
@@ -21,135 +21,182 @@ from inloop.infra.env_config import EnvConfig
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
 from inloop.infra.plain_logger import PlainLogger
 
-console = rich.console.Console()
+
+PROMPT = [("class:arrow", "› ")]
+PROMPT_STYLE = Style.from_dict({
+    "arrow": "dim",
+    "status": "italic fg:ansibrightblack",
+})
 
 
-async def stdin_lines() -> AsyncIterator[str]:
-    """Yield lines from stdin without blocking the event loop."""
-    loop = asyncio.get_running_loop()
-    interactive = sys.stdin.isatty()
-    prompt = "\001\033[2m\002› \001\033[0m\002" if interactive else ""
-    while True:
-        try:
-            line = await loop.run_in_executor(None, input, prompt)
-        except EOFError:
-            if interactive:
-                console.print()
-            break
+class Renderer:
+    """Present reply events in the console, tracking a status label."""
 
-        if not interactive:
-            yield line
-            continue
+    def __init__(self):
+        self.console = rich.console.Console()
+        self.status = ""
 
-        sys.stdout.write("\033[1A\033[2K")
-        sys.stdout.flush()
-        if line.strip():
-            console.print(f"[bold]› {line.strip()}[/bold]")
-            console.print()
-        yield line
-
-
-async def user_input() -> AsyncIterator[str]:
-    """Yield meaningful user messages for the chat."""
-    async for line in stdin_lines():
-        text = line.strip()
-        if text:
-            yield text
-
-
-async def render(events: AsyncIterator[streaming.Event]) -> None:
-    """Present reply events as the app layer streams them."""
-    live = rich.live.Live(console=console, refresh_per_second=20)
-    text_buffer = ""
-    at_bol = True
-    at_blank_line = True
-
-    def separate() -> None:
-        nonlocal at_bol, at_blank_line
-        if not at_bol:
-            console.print()
-        if not at_blank_line:
-            console.print()
-        at_bol = True
-        at_blank_line = True
-
-    def handle(event: streaming.Event) -> None:
-        nonlocal text_buffer, at_bol, at_blank_line
-        match event:
-            case streaming.ThinkingPhase.STARTED:
-                console.print(Text("Thinking...", style="italic dim"), end="")
-                at_bol = False
-                at_blank_line = False
-
-            case streaming.ThinkingDelta(_):
-                pass
-
-            case streaming.ThinkingPhase.ENDED:
-                sys.stdout.write("\r\033[2K")
-                sys.stdout.flush()
-                at_bol = True
-                at_blank_line = True
-
-            case streaming.TextPhase.STARTED:
-                text_buffer = ""
-                live.start()
-
-            case streaming.TextDelta(delta):
-                text_buffer += delta
-                live.update(Markdown(text_buffer))
-
-            case streaming.TextPhase.ENDED:
-                live.stop()
-                at_bol = True
-                at_blank_line = not text_buffer
-                separate()
-
-            case streaming.ToolUse(_, name, tool_input):
-                live.stop()
-                console.print(f"[dim cyan]⛭ {name} {json.dumps(tool_input)}[/dim cyan]")
-                at_bol = True
-                at_blank_line = False
-
-            case streaming.MessageCompleted(_, stop_reason):
-                live.stop()
-                separate()
-
-            case streaming.Interrupted():
-                live.stop()
-                separate()
-                console.print("[red]⨯ interrupted[/red]")
-                at_bol = True
-                at_blank_line = False
-
-            case streaming.Failed(error):
-                live.stop()
-                separate()
-                console.print(f"[red]⨯ error: {error}[/red]")
-                at_bol = True
-                at_blank_line = False
-
-    try:
-        async for event in events:
-            handle(event)
-    finally:
-        if live.is_started:
-            live.stop()
-
-async def chat(agent: Agent) -> None:
-    """Drive the interactive chat, interrupting the current reply on ^C."""
-    if sys.stdin.isatty():
-        console.print(Panel(
-            "[bold]\u2192 [blue]Ctrl+C[/blue] to interrupt · [blue]Ctrl+D[/blue] to exit[/bold]",
+    def render_banner(self):
+        self.console.print(Panel(
+            "[bold]→ [blue]Ctrl+C[/blue] to interrupt · [blue]Ctrl+D[/blue] to exit[/bold]",
             border_style="dim",
             box=rich.box.ROUNDED,
             padding=(0, 1),
         ))
+
+    def echo_input(self, text):
+        self.console.print(Text.assemble(("› ", "dim"), text, style="bold"))
+        self.console.print()
+        self.status = "○ sending…"
+
+    def render_event(self, event, line):
+        if line is not None:
+            sys.stdout.write(f"{line}\n")
+            sys.stdout.flush()
+
+        match event:
+            case streaming.ThinkingPhase.STARTED:
+                self.status = "○ thinking…"
+
+            case streaming.TextPhase.STARTED:
+                self.status = "● responding…"
+
+            case streaming.TextPhase.ENDED:
+                self.console.print()
+                self.status = ""
+
+            case streaming.ToolUse(_, name, tool_input):
+                name = name.replace('__', ':', 1)
+                self.console.print(Text(f"⛭ {name} {json.dumps(tool_input)}", style="dim cyan"))
+                self.console.print()
+
+            case streaming.Interrupted():
+                self.status = ""
+                self.console.print(Text("⨯ interrupted", style="red"))
+                self.console.print()
+
+            case streaming.Failed(error):
+                self.status = ""
+                self.console.print(Text(f"⨯ error: {error}", style="red"))
+                self.console.print()
+
+
+class Prompt:
+    """Bottom-pinned input line that queues submitted text for the agent."""
+
+    def __init__(self, status, on_submit, on_interrupt):
+        self._status = status
+        self._on_submit = on_submit
+        self._on_interrupt = on_interrupt
+        self._queue = asyncio.Queue()
+        self._session = PromptSession(
+            key_bindings=self._bindings(),
+            style=PROMPT_STYLE,
+            erase_when_done=True,
+        )
+
+    def _bindings(self):
+        bindings = KeyBindings()
+
+        @bindings.add("c-c")
+        def _(event):
+            buffer = event.current_buffer
+            if buffer.text:
+                buffer.reset()
+            else:
+                self._on_interrupt()
+
+        return bindings
+
+    def _message(self):
+        if label := self._status():
+            return [("class:status", label), ("", "\n"), *PROMPT]
+        return PROMPT
+
+    async def read_loop(self):
+        while True:
+            try:
+                line = await self._session.prompt_async(
+                    self._message,
+                    style=PROMPT_STYLE,
+                    handle_sigint=False,  # ctrl+c goes to our key binding
+                )
+            except (EOFError, KeyboardInterrupt):
+                await self._queue.put(None)  # sentinel: tell lines() to stop
+                return
+            if text := line.strip():
+                self._on_submit(text)
+                await self._queue.put(text)
+
+    async def lines(self):
+        while (text := await self._queue.get()) is not None:
+            yield text
+
+    def refresh(self):
+        if self._session.app.is_running:
+            self._session.app.invalidate()
+
+
+async def _piped_input():
     loop = asyncio.get_running_loop()
-    loop.add_signal_handler(signal.SIGINT, agent.interrupt)
-    try:
-        await render(agent.events(user_input()))
-    finally:
-        loop.remove_signal_handler(signal.SIGINT)
+    while True:
+        try:
+            line = await loop.run_in_executor(None, input)
+        except EOFError:
+            return
+        if text := line.strip():
+            yield text
+
+
+async def _acc_into_lines(events):
+    """Buffer text deltas into whole lines, pairing each event with its line."""
+    pending = ""
+    async for event in events:
+        match event:
+            case streaming.TextDelta(text):
+                pending += text
+                while "\n" in pending:
+                    head, pending = pending.split("\n", 1)
+                    yield event, head
+
+            case (
+                streaming.TextPhase.ENDED
+                | streaming.ToolUse()
+                | streaming.Interrupted()
+                | streaming.Failed()
+            ):
+                line, pending = pending or None, ""
+                yield event, line
+
+            case _:
+                yield event, None
+
+
+async def chat(agent):
+    """Drive the interactive chat, keeping the input pinned to the bottom."""
+    renderer = Renderer()
+    interactive = sys.stdin.isatty()
+
+    if interactive:
+        renderer.render_banner()
+        prompt = Prompt(
+            status=lambda: renderer.status,
+            on_submit=renderer.echo_input,
+            on_interrupt=agent.interrupt,
+        )
+        lines, refresh = prompt.lines(), prompt.refresh
+    else:
+        lines, refresh = _piped_input(), lambda: None
+
+    with patch_stdout(raw=True):
+        task = asyncio.create_task(prompt.read_loop()) if interactive else None
+        try:
+            async for event, line in _acc_into_lines(agent.events(lines)):
+                renderer.render_event(event, line)
+                refresh()
+        finally:
+            if task:
+                task.cancel()
 
 
 def main():
