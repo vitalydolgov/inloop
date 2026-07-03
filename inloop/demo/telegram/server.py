@@ -27,10 +27,9 @@ def create_app(
         update = await request.json()
         incoming = update.get("message", {})
         text = incoming.get("text")
-        sender_id = incoming.get("from", {}).get("id")
         chat_id = incoming.get("chat", {}).get("id")
 
-        if text and sender_id == config.allowed_user_id():
+        if text:
             await _reply(agent, client, chat_id, text)
 
         return web.Response()
