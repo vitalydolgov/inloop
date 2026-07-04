@@ -19,7 +19,7 @@ from prompt_toolkit.styles import Style
 
 from inloop.app.agent import Agent
 from inloop.app import tool_server_config
-from inloop.app.builtin import read
+from inloop.app.builtin import patch, read, write
 from inloop.domain import streaming
 
 from inloop.infra import app_dirs
@@ -215,7 +215,11 @@ async def amain():
             model=model,
             subagent_model=subagent_model,
             extensions=[*registry.load(), *mcp_extensions],
-            tools=[read.read_tool(filesystem)],
+            tools=[
+                read.read_tool(filesystem),
+                write.write_tool(filesystem),
+                patch.patch_tool(filesystem),
+            ],
             logger=PlainLogger(app_dirs.log_dir()),
         )
         await chat(agent)

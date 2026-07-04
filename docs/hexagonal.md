@@ -20,7 +20,7 @@ A server hosting tools the agent can list and call, such as an MCP server. Imple
 
 ### `FileSystem` — `app/filesystem.py`
 
-Reads files from the local system. The built-in `read` tool (`app/builtin/read.py`) serves file contents through it. The adapter is `LocalFileSystem` (`infra/local_filesystem.py`), which reads from disk.
+Reads and writes files on the local system. The built-in tools in `app/builtin/` serve it: `read` returns file contents, `write` replaces a whole file, and `patch` reads then rewrites a file to swap one exact text span. The adapter is `LocalFileSystem` (`infra/local_filesystem.py`), which backs it with the disk.
 
 ## Configuration
 
