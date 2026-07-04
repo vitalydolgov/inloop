@@ -22,7 +22,7 @@ from inloop.infra.directory_registry import DirectoryExtensionRegistry
 from inloop.infra.plain_logger import PlainLogger
 
 
-PROMPT = [("class:arrow", "› ")]
+PROMPT = [("class:arrow", "\u203a ")]
 PROMPT_STYLE = Style.from_dict({
     "arrow": "dim",
     "status": "italic fg:ansibrightblack",
@@ -38,16 +38,16 @@ class Renderer:
 
     def render_banner(self):
         self.console.print(Panel(
-            "[bold]→ [blue]Ctrl+C[/blue] to interrupt · [blue]Ctrl+D[/blue] to exit[/bold]",
+            "[bold]\u2192 [blue]Ctrl+C[/blue] to interrupt \u00b7 [blue]Ctrl+D[/blue] to exit[/bold]",
             border_style="dim",
             box=rich.box.ROUNDED,
             padding=(0, 1),
         ))
 
     def echo_input(self, text):
-        self.console.print(Text.assemble(("› ", "dim"), text, style="bold"))
+        self.console.print(Text.assemble(("\u203a ", "dim"), text, style="bold"))
         self.console.print()
-        self.status = "○ sending…"
+        self.status = "\u25cb sending\u2026"
 
     def render_event(self, event, line):
         if line is not None:
@@ -56,28 +56,29 @@ class Renderer:
 
         match event:
             case streaming.ThinkingPhase.STARTED:
-                self.status = "○ thinking…"
+                self.status = "\u25cb thinking\u2026"
 
             case streaming.TextPhase.STARTED:
-                self.status = "● responding…"
+                self.status = "\u25cf responding\u2026"
 
             case streaming.TextPhase.ENDED:
-                self.console.print()
                 self.status = ""
+                self.console.print()
 
             case streaming.ToolUse(_, name, tool_input):
+                self.status = ""
                 name = name.replace('__', ':', 1)
-                self.console.print(Text(f"⛭ {name} {json.dumps(tool_input)}", style="dim cyan"))
+                self.console.print(Text(f"\u26ed {name} {json.dumps(tool_input)}", style="dim cyan"))
                 self.console.print()
 
             case streaming.Interrupted():
                 self.status = ""
-                self.console.print(Text("⨯ interrupted", style="red"))
+                self.console.print(Text("\u2a2f interrupted", style="red"))
                 self.console.print()
 
             case streaming.Failed(error):
                 self.status = ""
-                self.console.print(Text(f"⨯ error: {error}", style="red"))
+                self.console.print(Text(f"\u2a2f error: {error}", style="red"))
                 self.console.print()
 
 
