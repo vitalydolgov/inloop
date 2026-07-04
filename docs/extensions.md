@@ -20,7 +20,7 @@ greeter/
 name = "greeter"
 version = "0.1.0"
 description = "Greets people by name."
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = ["inloop-kit"]
 
 [project.entry-points."inloop.extensions"]

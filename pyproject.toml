@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Vitaly Dolgov", email = "vitaly.dolgov@posteo.net" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "inloop-kit",
     "python-dotenv>=1.2.2",

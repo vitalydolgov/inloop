@@ -41,7 +41,8 @@ def _render_block(tokens: list[Token], i: int) -> tuple[str, int]:
             return "──────────", i + 1
         case "blockquote_open":
             inner, i = _render_blocks(tokens, i + 1)
-            return f"<blockquote>{'\n'.join(inner)}</blockquote>", i
+            body = "\n".join(inner)
+            return f"<blockquote>{body}</blockquote>", i
         case "bullet_list_open" | "ordered_list_open":
             return _render_list(tokens, i + 1)
         case _:
@@ -53,7 +54,8 @@ def _render_list(tokens: list[Token], i: int) -> tuple[str, int]:
     while tokens[i].type == "list_item_open":
         marker = f"{tokens[i].info}." if tokens[i].info else "•"
         inner, i = _render_blocks(tokens, i + 1)
-        items.append(f"{marker} {'\n'.join(inner)}")
+        body = "\n".join(inner)
+        items.append(f"{marker} {body}")
     return "\n".join(items), i + 1
 
 
