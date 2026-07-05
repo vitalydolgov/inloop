@@ -8,6 +8,8 @@ from pathlib import Path
 
 import rich.box
 import rich.console
+import rich.live
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.text import Text
 from prompt_toolkit import PromptSession
@@ -36,6 +38,8 @@ class Renderer:
     def __init__(self):
         self.console = rich.console.Console()
         self.status = ""
+        self._live = None
+        self._text = ""
 
     def render_banner(self):
         self.console.print(Panel(
@@ -50,37 +54,50 @@ class Renderer:
         self.console.print()
         self.status = "\u25cb sending\u2026"
 
-    def render_event(self, event, line):
-        if line is not None:
-            sys.stdout.write(f"{line}\n")
-            sys.stdout.flush()
-
+    def render_event(self, event):
         match event:
             case streaming.ThinkingPhase.STARTED:
                 self.status = "\u25cb thinking\u2026"
 
             case streaming.TextPhase.STARTED:
                 self.status = "\u25cf responding\u2026"
+                self._text = ""
+                self._live = rich.live.Live(console=self.console, vertical_overflow="visible")
+                self._live.start()
+
+            case streaming.TextDelta(text):
+                self._text += text
+                if self._live:
+                    self._live.update(Markdown(self._text))
 
             case streaming.TextPhase.ENDED:
+                self._end_live()
                 self.status = ""
                 self.console.print()
 
             case streaming.ToolUse(_, name, tool_input):
+                self._end_live()
                 self.status = ""
                 name = name.replace('__', ':', 1)
                 self.console.print(Text(f"\u26ed {name} {json.dumps(tool_input)}", style="dim cyan"))
                 self.console.print()
 
             case streaming.Interrupted():
+                self._end_live()
                 self.status = ""
                 self.console.print(Text("\u2a2f interrupted", style="red"))
                 self.console.print()
 
             case streaming.Failed(error):
+                self._end_live()
                 self.status = ""
                 self.console.print(Text(f"\u2a2f error: {error}", style="red"))
                 self.console.print()
+
+    def _end_live(self):
+        if self._live:
+            self._live.stop()
+            self._live = None
 
 
 class Prompt:
@@ -150,30 +167,6 @@ async def _piped_input():
             yield text
 
 
-async def _acc_into_lines(events):
-    """Buffer text deltas into whole lines, pairing each event with its line."""
-    pending = ""
-    async for event in events:
-        match event:
-            case streaming.TextDelta(text):
-                pending += text
-                while "\n" in pending:
-                    head, pending = pending.split("\n", 1)
-                    yield event, head
-
-            case (
-                streaming.TextPhase.ENDED
-                | streaming.ToolUse()
-                | streaming.Interrupted()
-                | streaming.Failed()
-            ):
-                line, pending = pending or None, ""
-                yield event, line
-
-            case _:
-                yield event, None
-
-
 async def chat(agent):
     """Drive the interactive chat, keeping the input pinned to the bottom."""
     renderer = Renderer()
@@ -193,8 +186,8 @@ async def chat(agent):
     with patch_stdout(raw=True):
         task = asyncio.create_task(prompt.read_loop()) if interactive else None
         try:
-            async for event, line in _acc_into_lines(agent.events(lines)):
-                renderer.render_event(event, line)
+            async for event in agent.events(lines):
+                renderer.render_event(event)
                 refresh()
         finally:
             if task:
