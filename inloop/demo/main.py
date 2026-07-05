@@ -195,17 +195,12 @@ async def chat(agent):
 
 
 def main():
-    """Start the interactive chat demo."""
-    config = EnvConfig()
-    registry = DirectoryExtensionRegistry(config.extensions_path())
+    from inloop.infra import providers
 
-    if os.environ.get("MOCK"):
-        from inloop.infra.providers.mock import MockModel
-
-        model = MockModel("How can I help you?", delay=0.01)
+    if mock := os.environ.get("MOCK"):
+        model = providers.mock.MockModel(Path(mock), delay=0.01)
     else:
         import anthropic
-        from inloop.infra import providers
 
         model = providers.anthropic.AnthropicModel(
             client=anthropic.AsyncAnthropic(),
@@ -214,6 +209,8 @@ def main():
             effort="medium",
         )
 
+    config = EnvConfig()
+    registry = DirectoryExtensionRegistry(config.extensions_path())
     agent = Agent(
         model=model,
         extensions=registry.load(),

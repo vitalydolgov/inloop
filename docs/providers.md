@@ -1,16 +1,10 @@
 # Providers
 
-Supported LLM backends and how to configure them.
-
-A provider is an adapter that lets the agent talk to a specific LLM backend. The agent depends only on the `domain.model.Model` port, so adding a backend never touches `domain` or `app` — see [Writing your own provider](#writing-your-own-provider).
+A provider is an adapter between the agent and a specific LLM backend. Below are the built-in providers and instructions for writing a new one.
 
 ## Built-in providers
 
-Each provider lives in its own module under `infra/providers/` and is re-exported from `infra/providers/__init__.py`. Import the `providers` package and reach a given backend off it:
-
-```python
-from inloop.infra import providers
-```
+Each provider lives in its own module under `infra/providers/` and is re-exported from `infra/providers/__init__.py`.
 
 ### Anthropic
 
@@ -47,6 +41,26 @@ model = providers.together.TogetherModel(
     model="google/gemma-4-31B-it",
     max_tokens=64_000,
 )
+```
+
+### Mock
+
+Use this provider to test and develop without calling a live backend.
+
+```python
+from pathlib import Path
+from inloop.infra.providers.mock import MockModel
+
+model = MockModel(Path("conversation.json"), delay=0.01)
+```
+
+Replays a scripted conversation from a JSON file. Only the `assistant` turns are used, in order; once they run out, the model echoes the user's last message back.
+
+```json
+[
+    {"role": "user", "text": "hello"},
+    {"role": "assistant", "text": "hi there, how can I help?"}
+]
 ```
 
 ## Writing your own provider
