@@ -40,7 +40,6 @@ default-groups = ["dev", "bundled_extensions"]
 [tool.uv.sources]
 inloop-kit = { path = "inloop_kit", editable = true }
 calculator = { path = "extensions/calculator", editable = true }
-resources = { path = "extensions/resources", editable = true }
 
 [dependency-groups]
 dev = [
@@ -49,7 +48,6 @@ dev = [
 ]
 bundled_extensions = [
     "calculator",
-    "resources",
 ]
 
 [tool.pytest.ini_options]

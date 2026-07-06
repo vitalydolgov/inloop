@@ -58,7 +58,7 @@ Running the CLI against Gemma 4 31B:
 40 + 2 = 42
 ```
 
-With the [`@playwright/mcp`](https://www.npmjs.com/package/@playwright/mcp) server configured, you can control the browser:
+With the [Playwright MCP](https://www.npmjs.com/package/@playwright/mcp), you can control the browser:
 
 ```
 > open example.com
@@ -68,14 +68,23 @@ With the [`@playwright/mcp`](https://www.npmjs.com/package/@playwright/mcp) serv
 I have opened example.com for you.
 ```
 
+With the [DuckDuckGo MCP](https://github.com/nickclyde/duckduckgo-mcp-server), you can search for information:
+
+```
+> search for the latest stable version of Python and output only the version number
+
+⛭ duckduckgo:search {"query": "latest major version of python 2025 2026 current stable release", "max_results": 5}
+
+3.14
+```
+
 ## Extensions
 
-An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule under `extensions/`, or living in its own repo — that exposes an `EXTENSION` value describing its tools. It depends only on `inloop-kit`, the small extension toolkit, not the whole framework. Installed extensions are discovered automatically. Writing one means declaring tools with `inloop_kit` and can be tried out with `uv run inloop probe`, without starting the agent. See [Extensions](docs/extensions.md) for how to create and install one.
+An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled in the repo under `extensions/`, or living in its own repo — that exposes an `EXTENSION` value describing its tools. It depends only on `inloop-kit`, the small extension toolkit, not the whole framework. Installed extensions are discovered automatically. Writing one means declaring tools with `inloop_kit` and can be tried out with `uv run inloop probe`, without starting the agent. See [Extensions](docs/extensions.md) for how to create and install one.
 
 ### Bundled extensions
 
 - `calculator` — evaluates arithmetic expressions (a minimal example extension)
-- `resources` — reads, writes, and patches local files, and fetches the readable text content of a web page over HTTP
 
 ### External extensions
 
@@ -88,13 +97,7 @@ Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with 
 
 ## Setup
 
-1. Fetch the bundled extensions, which live in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule:
-
-   ```sh
-   git submodule update --init
-   ```
-
-2. Provide a config file — optional, since defaults apply without one. Copy `inloop.toml.example` to `inloop.toml` for a project-local config, or create `~/.inloop/inloop.toml` to apply it to every run:
+1. Provide a config file — optional, since defaults apply without one. Copy `inloop.toml.example` to `inloop.toml` for a project-local config, or create `~/.inloop/inloop.toml` to apply it to every run:
 
    ```sh
    cp inloop.toml.example inloop.toml
@@ -102,7 +105,7 @@ Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with 
 
    `INLOOP_HOME` relocates `~/.inloop`, where logs and installed extensions also live. See [Configuration](docs/configuration.md) for the file's sections.
 
-3. Install the providers you want and export the matching API key (or put it in a `.env` file). Each provider is a package extra.
+2. Install the providers you want and export the matching API key (or put it in a `.env` file). Each provider is a package extra.
 
    Install every provider:
 
@@ -117,7 +120,7 @@ Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with 
    export ANTHROPIC_API_KEY=...
    ```
 
-4. Run the agent:
+3. Run the agent:
 
    ```sh
    uv run inloop

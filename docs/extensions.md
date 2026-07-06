@@ -1,6 +1,6 @@
 # Extensions
 
-Each extension is an installable package that exposes an `EXTENSION` value and declares an `inloop.extensions` entry point. The loader discovers every installed package registered under that group. Bundled extensions live in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule at `extensions/` and are installed via the `bundled_extensions` uv dependency group. External extensions live in their own repo and are installed into local storage.
+Each extension is an installable package that exposes an `EXTENSION` value and declares an `inloop.extensions` entry point. The loader discovers every installed package registered under that group. Bundled extensions live in `extensions/` in this repo and are installed via the `bundled_extensions` uv dependency group. External extensions live in their own repo and are installed into local storage.
 
 ## Creating an extension
 
@@ -34,7 +34,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 ```
 
-`inloop-kit` carries only the `Extension` and `tool` API an extension needs, with no runtime dependencies. It is not published to an index, so point at it with the git source above. Drop the `[tool.uv.sources]` block if you are developing the extension inside the `inloop-builtin` submodule, where bundled extensions reference the framework by path.
+`inloop-kit` carries only the `Extension` and `tool` API an extension needs, with no runtime dependencies. It is not published to an index, so point at it with the git source above. Drop the `[tool.uv.sources]` block if you are developing the extension inside the repo's `extensions/` directory, where bundled extensions reference the framework by path.
 
 `greeter/__init__.py` wraps each function with `@tool` and collects them into an `EXTENSION`:
 
