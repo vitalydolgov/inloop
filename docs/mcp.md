@@ -29,6 +29,18 @@ Try asking the agent:
 
 > What does the FastAPI repository do? Use the deepwiki tools to find out.
 
+## Example: Playwright browser control
+
+Connect a Playwright MCP server such as [`@playwright/mcp`](https://www.npmjs.com/package/@playwright/mcp) to control a browser. This stdio server launches Chrome and exposes browser automation tools.
+
+```toml
+[mcp.servers.playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp", "--browser", "chrome", "--output-dir", "~/.inloop/log/playwright-mcp"]
+```
+
+When the agent starts, it loads as the `playwright` extension with tools like `playwright__browser_navigate`, `playwright__browser_click`, and `playwright__browser_snapshot`. Chrome must be installed on your system, or you can let Playwright download it with `npx playwright install chrome`. Send the output to `~/.inloop/log` so it stays out of the project tree.
+
 ## Example: local echo server
 
 The example server below is not included in the repository; save it to a file such as `testmcp_echo.py`. It exposes a single `echo` tool useful for checking that the wiring works without relying on an internet connection.

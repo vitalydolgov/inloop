@@ -1,5 +1,6 @@
 """Application configuration read from a single TOML file, composed section by section."""
 
+import os
 import tomllib
 from pathlib import Path
 from urllib.parse import urlparse
@@ -41,7 +42,7 @@ class McpSection:
         return {
             name: McpToolServer(
                 command=entry.get("command"),
-                args=entry.get("args"),
+                args=_expand_paths(entry.get("args")),
                 env=entry.get("env"),
                 url=entry.get("url"),
             )
@@ -67,6 +68,13 @@ class TelegramSection:
         """Return the route the bot listens on, defaulting when no webhook URL is set."""
         url = self._table.get("webhook_url")
         return urlparse(url).path if url else DEFAULT_WEBHOOK_PATH
+
+
+def _expand_paths(args):
+    """Expand leading ~ in each argument to the user's home directory."""
+    if args is None:
+        return None
+    return [os.path.expanduser(arg) for arg in args]
 
 
 class TomlConfig:

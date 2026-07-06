@@ -41,3 +41,19 @@ def test_absent_file_falls_back_to_defaults(tmp_path: Path) -> None:
     config = TomlConfig(tmp_path / "missing.toml")
 
     assert config.mcp.load() == {}
+
+
+def test_expands_tilde_in_mcp_args(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("HOME", "/test/home")
+    path = _write(
+        tmp_path,
+        """
+        [mcp.servers.playwright]
+        command = "npx"
+        args = ["--output-dir", "~/playwright-mcp"]
+        """,
+    )
+    config = TomlConfig(path)
+
+    servers = config.mcp.load()
+    assert servers["playwright"]._args == ["--output-dir", "/test/home/playwright-mcp"]

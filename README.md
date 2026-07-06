@@ -53,12 +53,19 @@ Running the CLI against Gemma 4 31B:
 ```
 > calculate 40+2
 
-The user wants to calculate the sum of 40 and 2.
-I should use the calculator__evaluate tool to perform this arithmetic operation.
-
-⛭ calculator__evaluate {'expression': '40+2'}
+⛭ calculator:evaluate {'expression': '40+2'}
 
 40 + 2 = 42
+```
+
+With the [`@playwright/mcp`](https://www.npmjs.com/package/@playwright/mcp) server configured, you can control the browser:
+
+```
+> open example.com
+
+⛭ playwright:browser_navigate {"url": "https://example.com"}
+
+I have opened example.com for you.
 ```
 
 ## Extensions
@@ -77,7 +84,7 @@ An extension is a named bundle of tools that the agent can call. Each is a self-
 
 ### MCP servers
 
-Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with no per-server code — its tools become agent tools, namespaced `<server>__<tool>`. Declare servers in `inloop.toml`. See [MCP](docs/mcp.md).
+Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with no per-server code — its tools become agent tools, namespaced `<server>__<tool>`. Declare servers in `inloop.toml`. See [MCP](docs/mcp.md) for remote and local server examples.
 
 ## Setup
 
