@@ -84,21 +84,21 @@ When adding a tool that resembles an existing one, make each description explici
 Run a tool from any installed extension without starting the agent:
 
 ```sh
-uv run probe <extension> <tool_name> [key=value ...]
+uv run inloop probe <extension> <tool_name> [key=value ...]
 ```
 
-`key=value` pairs are parsed into a dict; integers and booleans are cast automatically (`page=2` → `{"page": 2}`, `force=true` → `{"force": True}`). Since path installs are editable, install an in-development extension once (`uv run extensions install ../greeter`) and source edits take effect on the next `probe` run.
+`key=value` pairs are parsed into a dict; integers and booleans are cast automatically (`page=2` → `{"page": 2}`, `force=true` → `{"force": True}`). Since path installs are editable, install an in-development extension once (`uv run inloop extensions install ../greeter`) and source edits take effect on the next `inloop probe` run.
 
 ## Installing an extension
 
 An extension developed in its own repo can be installed from a path or git url, without touching this project's `pyproject.toml`:
 
 ```sh
-uv run extensions install ../<extension>
+uv run inloop extensions install ../<extension>
 
 # by git url (optionally pin a branch/tag/commit)
-uv run extensions install "git+https://github.com/<you>/<extension>"
-uv run extensions install "git+https://github.com/<you>/<extension>@v0.1.0"
+uv run inloop extensions install "git+https://github.com/<you>/<extension>"
+uv run inloop extensions install "git+https://github.com/<you>/<extension>@v0.1.0"
 ```
 
 This resolves the package and its dependencies into its own directory, recording its source in a registry file alongside it. A path source is installed editable — it keeps importing directly from that directory, so source edits take effect the next time this project runs, no reinstall needed. A git source is copied at the resolved revision.
@@ -108,7 +108,7 @@ Extensions are stored in the `extensions` subdirectory of the [inloop directory]
 ## Removing an extension
 
 ```sh
-uv run extensions uninstall <name>
+uv run inloop extensions uninstall <name>
 ```
 
 This deletes the extension's directory and its registry entry. Since discovery is entry-point-based, the extension stops being loaded immediately — nothing else to clean up.
@@ -116,7 +116,7 @@ This deletes the extension's directory and its registry entry. Since discovery i
 ## Listing installed extensions
 
 ```sh
-uv run extensions list
+uv run inloop extensions list
 ```
 
 Lists both externally-installed extensions (with their source) and bundled extensions (marked `bundled`).

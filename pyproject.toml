@@ -9,8 +9,20 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "inloop-kit",
+    "mcp>=1.0.0",
+    "prompt-toolkit>=3.0.0",
     "python-dotenv>=1.2.2",
+    "rich>=13.0.0",
 ]
+
+[project.optional-dependencies]
+telegram = [
+    "aiohttp>=3.9",
+    "markdown-it-py>=3.0",
+    "pyngrok>=7.0",
+]
+anthropic = ["anthropic>=0.112.0"]
+together = ["together>=2.19.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -20,10 +32,7 @@ build-backend = "hatchling.build"
 packages = ["inloop"]
 
 [project.scripts]
-demo = "inloop.demo.main:main"
-telegram-demo = "inloop.demo.telegram.main:main"
-extensions = "inloop.cmd.extensions:main"
-probe = "inloop.cmd.probe:main"
+inloop = "inloop.cmd.dispatch:main"
 
 [tool.uv]
 default-groups = ["dev", "bundled_extensions"]
@@ -35,22 +44,12 @@ resources = { path = "extensions/resources", editable = true }
 
 [dependency-groups]
 dev = [
-    "mcp>=1.0.0",
-    "prompt-toolkit>=3.0.0",
     "pytest>=8.0.0",
-    "rich>=13.0.0",
 ]
 bundled_extensions = [
     "calculator",
     "resources",
 ]
-telegram = [
-    "aiohttp>=3.9",
-    "markdown-it-py>=3.0",
-    "pyngrok>=7.0",
-]
-anthropic = ["anthropic>=0.112.0"]
-together = ["together>=2.19.0"]
 
 [tool.pytest.ini_options]
 addopts = ["-m", "not anthropic and not deepwiki"]

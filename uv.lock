@@ -680,22 +680,15 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "inloop-kit" },
-    { name = "python-dotenv" },
-]
-
-[package.dev-dependencies]
-anthropic = [
-    { name = "anthropic" },
-]
-bundled-extensions = [
-    { name = "calculator" },
-    { name = "resources" },
-]
-dev = [
     { name = "mcp" },
     { name = "prompt-toolkit" },
-    { name = "pytest" },
+    { name = "python-dotenv" },
     { name = "rich" },
+]
+
+[package.optional-dependencies]
+anthropic = [
+    { name = "anthropic" },
 ]
 telegram = [
     { name = "aiohttp" },
@@ -706,30 +699,36 @@ together = [
     { name = "together" },
 ]
 
-[package.metadata]
-requires-dist = [
-    { name = "inloop-kit", editable = "inloop_kit" },
-    { name = "python-dotenv", specifier = ">=1.2.2" },
+[package.dev-dependencies]
+bundled-extensions = [
+    { name = "calculator" },
+    { name = "resources" },
+]
+dev = [
+    { name = "pytest" },
 ]
 
+[package.metadata]
+requires-dist = [
+    { name = "aiohttp", marker = "extra == 'telegram'", specifier = ">=3.9" },
+    { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.112.0" },
+    { name = "inloop-kit", editable = "inloop_kit" },
+    { name = "markdown-it-py", marker = "extra == 'telegram'", specifier = ">=3.0" },
+    { name = "mcp", specifier = ">=1.0.0" },
+    { name = "prompt-toolkit", specifier = ">=3.0.0" },
+    { name = "pyngrok", marker = "extra == 'telegram'", specifier = ">=7.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+    { name = "rich", specifier = ">=13.0.0" },
+    { name = "together", marker = "extra == 'together'", specifier = ">=2.19.0" },
+]
+provides-extras = ["telegram", "anthropic", "together"]
+
 [package.metadata.requires-dev]
-anthropic = [{ name = "anthropic", specifier = ">=0.112.0" }]
 bundled-extensions = [
     { name = "calculator", editable = "extensions/calculator" },
     { name = "resources", editable = "extensions/resources" },
 ]
-dev = [
-    { name = "mcp", specifier = ">=1.0.0" },
-    { name = "prompt-toolkit", specifier = ">=3.0.0" },
-    { name = "pytest", specifier = ">=8.0.0" },
-    { name = "rich", specifier = ">=13.0.0" },
-]
-telegram = [
-    { name = "aiohttp", specifier = ">=3.9" },
-    { name = "markdown-it-py", specifier = ">=3.0" },
-    { name = "pyngrok", specifier = ">=7.0" },
-]
-together = [{ name = "together", specifier = ">=2.19.0" }]
+dev = [{ name = "pytest", specifier = ">=8.0.0" }]
 
 [[package]]
 name = "inloop-kit"

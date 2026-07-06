@@ -26,7 +26,7 @@ Each provider lives in its own module under `infra/providers/` and is re-exporte
 ### Anthropic
 
 ```sh
-uv sync --group anthropic
+uv sync --extra anthropic
 export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
@@ -48,7 +48,7 @@ model = providers.anthropic.AnthropicModel(
 ### Together AI
 
 ```sh
-uv sync --group together
+uv sync --extra together
 export TOGETHER_API_KEY="..."
 ```
 

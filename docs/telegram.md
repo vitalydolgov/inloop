@@ -5,7 +5,7 @@ Exposes the agent as a Telegram bot, implemented under `demo/telegram/`. It talk
 ## Setup
 
 ```sh
-uv sync --group telegram --group anthropic
+uv sync --extra telegram --extra anthropic
 export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
@@ -21,7 +21,7 @@ webhook_url = "https://..."
 ```
 
 ```sh
-uv run telegram-demo
+uv run inloop telegram-demo
 ```
 
 The process listens on `0.0.0.0:8080` by default, overridable with the `PORT` environment variable, and registers `webhook_url` with Telegram on startup.

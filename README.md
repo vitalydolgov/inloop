@@ -63,7 +63,7 @@ I should use the calculator__evaluate tool to perform this arithmetic operation.
 
 ## Extensions
 
-An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule under `extensions/`, or living in its own repo — that exposes an `EXTENSION` value describing its tools. It depends only on `inloop-kit`, the small extension toolkit, not the whole framework. Installed extensions are discovered automatically. Writing one means declaring tools with `inloop_kit` and can be tried out with `uv run probe`, without starting the agent. See [Extensions](docs/extensions.md) for how to create and install one.
+An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule under `extensions/`, or living in its own repo — that exposes an `EXTENSION` value describing its tools. It depends only on `inloop-kit`, the small extension toolkit, not the whole framework. Installed extensions are discovered automatically. Writing one means declaring tools with `inloop_kit` and can be tried out with `uv run inloop probe`, without starting the agent. See [Extensions](docs/extensions.md) for how to create and install one.
 
 ### Bundled extensions
 
@@ -95,26 +95,38 @@ Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with 
 
    `INLOOP_HOME` relocates `~/.inloop`, where logs and installed extensions also live. See [Configuration](docs/configuration.md) for the file's sections.
 
-3. Install the provider groups and export the matching API key (or put it in a `.env` file).
+3. Install the providers you want and export the matching API key (or put it in a `.env` file). Each provider is a package extra.
 
    Install every provider:
 
    ```sh
-   uv sync --all-groups
+   uv sync --all-extras
    ```
 
    Or install just one provider — for example, Anthropic:
 
    ```sh
-   uv sync --group anthropic
+   uv sync --extra anthropic
    export ANTHROPIC_API_KEY=...
    ```
 
-4. Run the demo:
+4. Run the agent:
 
    ```sh
-   uv run demo
+   uv run inloop
    ```
+
+### Install as a command
+
+`uv run inloop` runs from the source tree. To put an `inloop` command on your PATH and run it from anywhere, install it as a uv tool, naming the providers you want as extras:
+
+```sh
+uv tool install "inloop[anthropic]"
+```
+
+```sh
+inloop
+```
 
 ## Documentation
 
