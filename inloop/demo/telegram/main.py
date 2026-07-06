@@ -4,13 +4,13 @@ import argparse
 import asyncio
 import hashlib
 import os
-from pathlib import Path
 
 import aiohttp
 from aiohttp import web
 
 from inloop.app import tool_server
 from inloop.app.agent import Agent
+from inloop.infra import app_dirs
 from inloop.infra import toml_config
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
 from inloop.infra.plain_logger import PlainLogger
@@ -34,9 +34,9 @@ async def amain():
     import anthropic
     from inloop.infra import providers
 
-    config = toml_config.TomlConfig(toml_config.default_path())
+    config = toml_config.TomlConfig(app_dirs.config_path())
     async with tool_server.connected(config.mcp) as mcp_extensions:
-        registry = DirectoryExtensionRegistry(config.extensions.path())
+        registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
         agent = Agent(
             model=providers.anthropic.AnthropicModel(
                 client=anthropic.AsyncAnthropic(),
@@ -45,7 +45,7 @@ async def amain():
                 effort="medium",
             ),
             extensions=[*registry.load(), *mcp_extensions],
-            logger=PlainLogger(Path("var/log")),
+            logger=PlainLogger(app_dirs.log_dir()),
         )
 
         telegram_config = config.telegram

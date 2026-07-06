@@ -3,7 +3,7 @@
 import asyncio
 import sys
 
-from inloop.infra import toml_config
+from inloop.infra import app_dirs
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
 
 
@@ -38,8 +38,7 @@ def main() -> None:
         sys.exit(1)
     extension_name, tool_name, *pairs = sys.argv[1:]
 
-    config = toml_config.TomlConfig(toml_config.default_path())
-    registry = DirectoryExtensionRegistry(config.extensions.path())
+    registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
     extensions = {ext.name: ext for ext in registry.load()}
 
     if extension_name not in extensions:

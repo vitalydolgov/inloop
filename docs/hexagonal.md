@@ -8,11 +8,7 @@ A language model that answers a conversation as an async stream of events. The a
 
 ### `Config` — `app/config.py`
 
-Application configuration composed of a section per concern: `extensions` (an `ExtensionsConfig`) and `mcp` (a `ToolServerSource`). The adapter is `TomlConfig` (`infra/toml_config.py`), which reads all sections from a single TOML file and exposes one sub-config each. It also carries a `telegram` section (a `TelegramConfig`).
-
-### `ExtensionsConfig` — `app/config.py`
-
-Reads the directory where installed extensions are stored. The adapter is the `[extensions]` section of `TomlConfig`.
+Application configuration composed of a section per concern, currently `mcp` (a `ToolServerSource`). The adapter is `TomlConfig` (`infra/toml_config.py`), which reads all sections from a single TOML file and exposes one sub-config each.
 
 ### `TelegramConfig` — `demo/telegram/config.py`
 

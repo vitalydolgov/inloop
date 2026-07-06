@@ -21,6 +21,7 @@ from inloop.app.agent import Agent
 from inloop.app import tool_server
 from inloop.domain import streaming
 
+from inloop.infra import app_dirs
 from inloop.infra import providers
 from inloop.infra import toml_config
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
@@ -209,13 +210,13 @@ async def amain():
             effort="medium",
         )
 
-    config = toml_config.TomlConfig(toml_config.default_path())
+    config = toml_config.TomlConfig(app_dirs.config_path())
     async with tool_server.connected(config.mcp) as mcp_extensions:
-        registry = DirectoryExtensionRegistry(config.extensions.path())
+        registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
         agent = Agent(
             model=model,
             extensions=[*registry.load(), *mcp_extensions],
-            logger=PlainLogger(Path("var/log")),
+            logger=PlainLogger(app_dirs.log_dir()),
         )
         await chat(agent)
 

@@ -2,7 +2,7 @@
 
 import argparse
 
-from inloop.infra import toml_config
+from inloop.infra import app_dirs
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
 
 
@@ -20,8 +20,7 @@ def main() -> None:
     subcommands.add_parser("list", help="List installed extensions")
 
     args = parser.parse_args()
-    config = toml_config.TomlConfig(toml_config.default_path())
-    storage = DirectoryExtensionRegistry(config.extensions.path())
+    storage = DirectoryExtensionRegistry(app_dirs.extensions_dir())
 
     match args.command:
         case "install":

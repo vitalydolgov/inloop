@@ -1,6 +1,5 @@
 """Application configuration read from a single TOML file, composed section by section."""
 
-import os
 import tomllib
 from pathlib import Path
 from urllib.parse import urlparse
@@ -12,25 +11,7 @@ from inloop.infra.mcp_server import McpToolServer
 
 load_dotenv()
 
-DEFAULT_CONFIG_PATH = "inloop.toml"
-DEFAULT_EXTENSIONS_PATH = "var/extensions"
 DEFAULT_WEBHOOK_PATH = "/webhook"
-
-
-def default_path() -> Path:
-    """Return the configuration file path, overridable with `INLOOP_CONFIG`."""
-    return Path(os.environ.get("INLOOP_CONFIG", DEFAULT_CONFIG_PATH))
-
-
-class ExtensionsSection:
-    """Extension settings read from the `[extensions]` table."""
-
-    def __init__(self, table):
-        self._table = table
-
-    def path(self) -> Path:
-        """Return the directory where installed extensions are stored."""
-        return Path(self._table.get("path", DEFAULT_EXTENSIONS_PATH))
 
 
 class McpSection:
@@ -77,6 +58,5 @@ class TomlConfig:
 
     def __init__(self, path: Path):
         data = tomllib.loads(path.read_text()) if path.exists() else {}
-        self.extensions = ExtensionsSection(data.get("extensions", {}))
         self.mcp = McpSection(data.get("mcp", {}).get("servers", {}))
         self.telegram = TelegramSection(data.get("telegram", {}))

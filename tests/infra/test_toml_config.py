@@ -15,16 +15,12 @@ def test_reads_each_section_into_its_own_sub_config(tmp_path: Path) -> None:
     path = _write(
         tmp_path,
         """
-        [extensions]
-        path = "somewhere/extensions"
-
         [mcp.servers.deepwiki]
         url = "https://mcp.deepwiki.com/mcp"
         """,
     )
     config = TomlConfig(path)
 
-    assert config.extensions.path() == Path("somewhere/extensions")
     assert list(config.mcp.load()) == ["deepwiki"]
 
 
@@ -32,21 +28,16 @@ def test_config_without_telegram_still_reads_the_other_sections(tmp_path: Path) 
     path = _write(
         tmp_path,
         """
-        [extensions]
-        path = "somewhere/extensions"
-
         [mcp.servers.deepwiki]
         url = "https://mcp.deepwiki.com/mcp"
         """,
     )
     config = TomlConfig(path)
 
-    assert config.extensions.path() == Path("somewhere/extensions")
     assert list(config.mcp.load()) == ["deepwiki"]
 
 
 def test_absent_file_falls_back_to_defaults(tmp_path: Path) -> None:
     config = TomlConfig(tmp_path / "missing.toml")
 
-    assert config.extensions.path() == Path("var/extensions")
     assert config.mcp.load() == {}

@@ -1,6 +1,3 @@
-[extensions]
-path = "var/extensions"
-
 [mcp.servers.deepwiki]
 url = "https://mcp.deepwiki.com/mcp"
 

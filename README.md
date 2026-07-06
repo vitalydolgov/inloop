@@ -87,13 +87,15 @@ Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with 
    git submodule update --init
    ```
 
-2. Copy `inloop.toml.example` to `inloop.toml` and adjust as needed:
+2. Provide a config file — optional, since defaults apply without one. Copy `inloop.toml.example` to `inloop.toml` for a project-local config, or create `~/.inloop/inloop.toml` to apply it to every run:
 
    ```sh
    cp inloop.toml.example inloop.toml
    ```
 
-3. Install the provider groups and export the matching API key.
+   `INLOOP_HOME` relocates `~/.inloop`, where logs and installed extensions also live. See [Configuration](docs/configuration.md) for the file's sections.
+
+3. Install the provider groups and export the matching API key (or put it in a `.env` file).
 
    Install every provider:
 

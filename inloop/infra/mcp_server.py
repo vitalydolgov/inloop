@@ -1,9 +1,9 @@
 """Tool server backed by a Model Context Protocol server, over stdio or HTTP."""
 
 from contextlib import AsyncExitStack
-from pathlib import Path
 
 from inloop.domain.tool import ToolSpec
+from inloop.infra import app_dirs
 
 
 class McpToolServer:
@@ -31,7 +31,12 @@ class McpToolServer:
             params = StdioServerParameters(
                 command=self._command, args=self._args, env=self._env
             )
-            read, write = await self._stack.enter_async_context(stdio_client(params))
+            log_path = app_dirs.log_dir() / "mcp-server.log"
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            errlog = self._stack.enter_context(open(log_path, "a"))
+            read, write = await self._stack.enter_async_context(
+                stdio_client(params, errlog=errlog)
+            )
         self._session = await self._stack.enter_async_context(ClientSession(read, write))
         await self._session.initialize()
 
