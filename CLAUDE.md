@@ -1,5 +1,8 @@
 This is a Python project managed with uv.
 
+- Run Python scripts and checks through uv (`uv run python ...`).
+- Before writing or editing documentation, read `docs/instructions.md`.
+
 ## Architecture
 
 Project follows Domain-Driven Design (DDD) with a hexagonal (ports-and-adapters) structure:
@@ -37,7 +40,17 @@ Dependency rules:
 
 - Write tests only for `domain` and `app`, do not test `infra` unless explicitly requested.
 
+## Communication style
+
+- Avoid jargon. Only use a specialized term if it is widely recognized among software developers — meaning it appears regularly in conference talks, published books, and mainstream technical writing without needing explanation.
+- When in doubt, use the simpler word. Do not use acronyms, internal project codenames, or vendor-specific buzzwords unless they are already common in published literature and conference keynotes.
+
 ## Repository
 
 - Commit messages are a single title line only — no body.
 - Keep only the essential action and object in the title; drop trailing qualifiers that add detail without disambiguating the change.
+
+## Shell
+
+- BSD `sed` doesn't support `\b` word boundaries. For whole-identifier renames across files, use `perl -pi -e 's/\bOld\b/New/g'` instead.
+- BSD `cat` doesn't support the `-A` flag. To inspect non-printing characters, use `vis` instead.

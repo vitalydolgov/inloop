@@ -10,4 +10,4 @@ Each entry is tagged with the id of the agent that produced it: `main` for the t
 
 ## Built-in logger
 
-`infra/plain_logger.py` is the bundled implementation. The demo entrypoint wires it up by default, pointed at `var/log`.
+`infra/plain_logger.py` is the bundled implementation. The main entrypoint wires it up by default, pointed at `var/log`.
