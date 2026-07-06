@@ -4,6 +4,10 @@ model = "claude-sonnet-5"
 max_tokens = 64000
 effort = "medium"
 
+[mcp.servers.duckduckgo]
+command = "uvx"
+args = ["duckduckgo-mcp-server"]
+
 [mcp.servers.deepwiki]
 url = "https://mcp.deepwiki.com/mcp"
 
