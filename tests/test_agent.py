@@ -18,14 +18,17 @@ class _ScriptedModel:
         self._replies = iter(replies)
         self.seen: list[list[message.Message]] = []
         self.offered_tools: list[list[tool.Tool]] = []
+        self.systems: list[str] = []
 
     async def stream(
         self,
         messages: Sequence[message.Message],
         tools: Sequence[tool.Tool] = (),
+        system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         self.seen.append(list(messages))
         self.offered_tools.append(list(tools))
+        self.systems.append(system)
         reply = next(self._replies)
         yield streaming.TextDelta(reply)
         yield streaming.MessageCompleted(text=reply, stop_reason="end_turn")
@@ -38,6 +41,7 @@ class _RaisingModel:
         self,
         messages: Sequence[message.Message],
         tools: Sequence[tool.Tool] = (),
+        system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         yield streaming.TextDelta("partial")
         raise RuntimeError("boom")
@@ -54,10 +58,21 @@ class _TurnModel:
         self,
         messages: Sequence[message.Message],
         tools: Sequence[tool.Tool] = (),
+        system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         self.seen.append(list(messages))
         for event in next(self._turns):
             yield event
+
+
+class _FixedEnvironment:
+    """An Environment that reports a fixed description."""
+
+    def __init__(self, description: str) -> None:
+        self._description = description
+
+    def describe(self) -> str:
+        return self._description
 
 
 async def _stream(items: list[str]) -> AsyncIterator[str]:
@@ -83,6 +98,34 @@ def test_run_streams_events_for_each_message() -> None:
         streaming.TextDelta("two"),
         streaming.MessageCompleted(text="two", stop_reason="end_turn"),
     ]
+
+
+def test_puts_the_environment_in_the_system_prompt() -> None:
+    model = _ScriptedModel(["ok"])
+    chat_agent = agent.Agent(
+        model, environment=_FixedEnvironment("Today's date is 2026-07-06.")
+    )
+
+    async def gather() -> None:
+        async for _ in chat_agent.events(_stream(["hi"])):
+            pass
+
+    asyncio.run(gather())
+
+    assert model.systems == ["Today's date is 2026-07-06."]
+
+
+def test_without_an_environment_sends_no_system_prompt() -> None:
+    model = _ScriptedModel(["ok"])
+    chat_agent = agent.Agent(model)
+
+    async def gather() -> None:
+        async for _ in chat_agent.events(_stream(["hi"])):
+            pass
+
+    asyncio.run(gather())
+
+    assert model.systems == [""]
 
 
 def test_offers_its_tools_to_the_model() -> None:
@@ -135,6 +178,7 @@ def test_runs_requested_tool_and_feeds_result_back() -> None:
             self,
             messages: Sequence[message.Message],
             tools: Sequence[tool.Tool] = (),
+            system: str = "",
         ) -> AsyncIterator[streaming.Event]:
             self.seen.append(list(messages))
             self._turn += 1
@@ -272,6 +316,7 @@ def test_logs_user_input_model_output_and_tool_results() -> None:
             self,
             messages: Sequence[message.Message],
             tools: Sequence[tool.Tool] = (),
+            system: str = "",
         ) -> AsyncIterator[streaming.Event]:
             self._turn += 1
             if self._turn == 1:
@@ -644,6 +689,7 @@ class _ConcurrentModel:
         self,
         messages: Sequence[message.Message],
         tools: Sequence[tool.Tool] = (),
+        system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         block = messages[-1].content[0]
         if isinstance(block, message.Text) and block.text in self._replies:

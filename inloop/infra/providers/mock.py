@@ -24,6 +24,7 @@ class MockModel:
         self,
         messages: Sequence[message.Message],
         tools: Sequence[tool.Tool] = (),
+        system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         """Replay the next recorded reply, or echo the last user message once exhausted."""
         if self._turn < len(self._replies):

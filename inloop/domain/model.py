@@ -15,6 +15,7 @@ class Model(Protocol):
         self,
         messages: Sequence[message.Message],
         tools: Sequence[tool.Tool] = (),
+        system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         """Yield response events for the conversation, offering the given tools."""
         ...

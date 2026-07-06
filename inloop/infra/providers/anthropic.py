@@ -51,6 +51,7 @@ class AnthropicModel:
         self,
         messages: Sequence[message.Message],
         tools: Sequence[tool.Tool] = (),
+        system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         """Stream a response to the conversation, offering the given tools."""
         payload = [
@@ -70,6 +71,8 @@ class AnthropicModel:
             "messages": payload,
             "tools": tool_specs,
         }
+        if system:
+            kwargs["system"] = system
         if self._effort is not None:
             kwargs["output_config"] = {"effort": self._effort}
         if self._thinking_budget is not None:

@@ -92,12 +92,16 @@ class OpenAIModel:
         self,
         messages: Sequence[message.Message],
         tools: Sequence[tool.Tool] = (),
+        system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         """Stream a response to the conversation, offering the given tools."""
+        chat_messages = _messages(messages)
+        if system:
+            chat_messages.insert(0, {"role": "system", "content": system})
         kwargs: dict[str, object] = {
             "model": self._model,
             "max_tokens": self._max_tokens,
-            "messages": _messages(messages),
+            "messages": chat_messages,
             "stream": True,
         }
         if tools:

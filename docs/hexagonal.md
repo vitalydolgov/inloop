@@ -14,6 +14,14 @@ Installs, removes, lists, and loads extensions. The adapter is `DirectoryExtensi
 
 Records entries produced while the agent runs. Each entry is tagged with the id of the agent that produced it (`log(entry, agent_id)`), so a spawned subagent's activity is distinguishable from its parent's. The adapter is `PlainLogger` (`infra/plain_logger.py`), which writes logs to files under the path it is given.
 
+### `Environment` — `app/environment.py`
+
+Describes the ambient facts the agent puts in front of the model as a system prompt, so it doesn't guess them — starting with today's date, which the model would otherwise infer from stale training data. The adapter is `SystemEnvironment` (`infra/system_environment.py`), which assembles the description from the host, currently composing a `Clock` for the date. Further facts are added by extending the adapter, leaving the agent untouched.
+
+### `Clock` — `app/clock.py`
+
+Reports the current calendar date. The adapter is `SystemClock` (`infra/system_clock.py`), which reads today's date from the operating system. Consumed by `SystemEnvironment` to date the environment description.
+
 ### `ToolServer` — `app/tool_server_config.py`
 
 A server hosting tools the agent can list and call, such as an MCP server. Implementations provide `connect`/`aclose` lifecycle hooks so the app layer can manage their transport. The adapter is `McpToolServer` (`infra/mcp_server.py`), which speaks the Model Context Protocol over stdio or HTTP.

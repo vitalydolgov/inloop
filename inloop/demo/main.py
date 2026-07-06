@@ -26,6 +26,8 @@ from inloop.infra import providers
 from inloop.infra import toml_config
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
 from inloop.infra.plain_logger import PlainLogger
+from inloop.infra.system_clock import SystemClock
+from inloop.infra.system_environment import SystemEnvironment
 
 
 PROMPT = [("class:arrow", "\u203a ")]
@@ -213,6 +215,7 @@ async def amain():
             subagent_model=subagent_model,
             extensions=[*registry.load(), *mcp_extensions],
             logger=PlainLogger(app_dirs.log_dir()),
+            environment=SystemEnvironment(SystemClock()),
         )
         await chat(agent)
 

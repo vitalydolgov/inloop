@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import AsyncIterator, Sequence
 
+from inloop.app import environment
 from inloop.app.conversation import Conversation
 from inloop.app.inbox import Inbox
 from inloop.app import logger
@@ -48,11 +49,13 @@ class Agent:
         subagent_model: model.Model | None = None,
         extensions: Sequence[extension.Extension] = (),
         logger: logger.Logger | None = None,
+        environment: environment.Environment | None = None,
         agent_id: str = "main",
         can_spawn: bool = True,
     ):
         self._model = model
         self._subagent_model = subagent_model or model
+        self._environment = environment
         self._extensions = list(extensions)
         self._tools = {}
         for ext in extensions:
@@ -94,6 +97,11 @@ class Agent:
         for child in self._children:
             child.interrupt()
 
+    def _system_prompt(self):
+        if self._environment is None:
+            return ""
+        return self._environment.describe()
+
     async def _log(self, entry):
         if self._logger:
             await self._logger.log(entry, self._id)
@@ -104,6 +112,7 @@ class Agent:
             self._subagent_model,
             extensions=self._extensions,
             logger=self._logger,
+            environment=self._environment,
             agent_id=f"sub-{self._child_count}",
             can_spawn=False,
         )
@@ -128,7 +137,9 @@ class Agent:
         partial = ""
 
         tools = list(self._tools.values())
-        stream = self._model.stream(self.conversation.history, tools)
+        stream = self._model.stream(
+            self.conversation.history, tools, system=self._system_prompt()
+        )
         try:
             async for event in stream:
                 match event:
