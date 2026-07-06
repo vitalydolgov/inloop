@@ -2,10 +2,13 @@
 
 from typing import Protocol
 
-from inloop.app.tool_server import ToolServerSource
+from inloop.app.model_config import ModelConfig
+from inloop.app.tool_server_config import ToolServerConfig
 
 
 class Config(Protocol):
     """Application configuration composed of a section per concern."""
 
-    mcp: ToolServerSource
+    agent: ModelConfig
+    subagent: ModelConfig
+    mcp: ToolServerConfig

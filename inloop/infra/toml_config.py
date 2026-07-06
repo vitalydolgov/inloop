@@ -6,12 +6,28 @@ from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
-from inloop.app.tool_server import ToolServer
+from inloop.app.tool_server_config import ToolServer
 from inloop.infra.mcp_server import McpToolServer
+from inloop.infra.providers import factory
 
 load_dotenv()
 
 DEFAULT_WEBHOOK_PATH = "/webhook"
+
+
+class ModelSection:
+    """The model a role runs on, read from its `[<role>.model]` table."""
+
+    def __init__(self, table):
+        self._table = table
+
+    def model(self):
+        """Return the configured model, or None when none is declared."""
+        if not self._table:
+            return None
+        settings = dict(self._table)
+        provider = settings.pop("provider")
+        return factory.create_model(provider, settings)
 
 
 class McpSection:
@@ -58,5 +74,7 @@ class TomlConfig:
 
     def __init__(self, path: Path):
         data = tomllib.loads(path.read_text()) if path.exists() else {}
+        self.agent = ModelSection(data.get("agent", {}).get("model"))
+        self.subagent = ModelSection(data.get("subagent", {}).get("model"))
         self.mcp = McpSection(data.get("mcp", {}).get("servers", {}))
         self.telegram = TelegramSection(data.get("telegram", {}))

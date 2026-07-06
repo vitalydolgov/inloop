@@ -2,7 +2,7 @@
 
 import asyncio
 
-from inloop.app import tool_server
+from inloop.app import tool_server_config
 from inloop.domain.tool import ToolSpec
 
 
@@ -31,7 +31,7 @@ class _FakeServer:
 
 
 class _FakeSource:
-    """A ToolServerSource that hands back a fixed set of servers."""
+    """A ToolServerConfig that hands back a fixed set of servers."""
 
     def __init__(self, servers: dict[str, _FakeServer]) -> None:
         self._servers = servers
@@ -47,7 +47,7 @@ def test_loads_advertised_specs_as_named_extension() -> None:
     ]
     server = _FakeServer(specs)
 
-    extension = asyncio.run(tool_server.make_extension("calculator", server))
+    extension = asyncio.run(tool_server_config.make_extension("calculator", server))
 
     assert extension.name == "calculator"
     assert [t.name for t in extension.tools] == ["add", "subtract"]
@@ -59,7 +59,7 @@ def test_loads_advertised_specs_as_named_extension() -> None:
 def test_tool_proxies_call_to_the_server() -> None:
     server = _FakeServer([ToolSpec("shout", "Uppercase.", {})], {"shout": "HELLO"})
 
-    extension = asyncio.run(tool_server.make_extension("echo", server))
+    extension = asyncio.run(tool_server_config.make_extension("echo", server))
     result = asyncio.run(extension.tools[0].execute({"text": "hello"}))
 
     assert result == "HELLO"
@@ -70,7 +70,7 @@ def test_each_tool_proxies_under_its_own_name() -> None:
     specs = [ToolSpec("first", "First.", {}), ToolSpec("second", "Second.", {})]
     server = _FakeServer(specs)
 
-    extension = asyncio.run(tool_server.make_extension("srv", server))
+    extension = asyncio.run(tool_server_config.make_extension("srv", server))
     asyncio.run(extension.tools_by_name()["srv__second"].execute({"x": 1}))
 
     assert server.calls == [("second", {"x": 1})]
@@ -82,7 +82,7 @@ def test_connected_opens_servers_and_yields_extensions() -> None:
 
     async def run():
         source = _FakeSource({"one": first, "two": second})
-        async with tool_server.connected(source) as extensions:
+        async with tool_server_config.connected(source) as extensions:
             assert first.connected and second.connected
             return [e.name for e in extensions]
 
@@ -94,7 +94,7 @@ def test_connected_closes_servers_when_the_body_raises() -> None:
     server = _FakeServer([ToolSpec("a", "A.", {})])
 
     async def run():
-        async with tool_server.connected(_FakeSource({"one": server})):
+        async with tool_server_config.connected(_FakeSource({"one": server})):
             raise RuntimeError("boom")
 
     try:

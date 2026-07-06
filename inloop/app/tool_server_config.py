@@ -27,7 +27,7 @@ class ToolServer(Protocol):
         ...
 
 
-class ToolServerSource(Protocol):
+class ToolServerConfig(Protocol):
     """Provides the tool servers configured for the agent, keyed by name."""
 
     def load(self) -> dict[str, ToolServer]:
@@ -52,9 +52,9 @@ async def make_extension(name: str, server: ToolServer) -> extension.Extension:
 
 
 @asynccontextmanager
-async def connected(source: ToolServerSource):
+async def connected(config: ToolServerConfig):
     """Load the configured tool servers, connect each, yield their extensions, and close them on exit."""
-    servers = source.load()
+    servers = config.load()
     async with AsyncExitStack() as stack:
         for server in servers.values():
             await server.connect()

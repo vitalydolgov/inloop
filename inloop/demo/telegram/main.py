@@ -8,7 +8,7 @@ import os
 import aiohttp
 from aiohttp import web
 
-from inloop.app import tool_server
+from inloop.app import tool_server_config
 from inloop.app.agent import Agent
 from inloop.infra import app_dirs
 from inloop.infra import toml_config
@@ -31,19 +31,12 @@ async def amain():
     )
     args = parser.parse_args()
 
-    import anthropic
-    from inloop.infra import providers
-
     config = toml_config.TomlConfig(app_dirs.config_path())
-    async with tool_server.connected(config.mcp) as mcp_extensions:
+    async with tool_server_config.connected(config.mcp) as mcp_extensions:
         registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
         agent = Agent(
-            model=providers.anthropic.AnthropicModel(
-                client=anthropic.AsyncAnthropic(),
-                model="claude-sonnet-5",
-                max_tokens=64_000,
-                effort="medium",
-            ),
+            model=config.agent.model(),
+            subagent_model=config.subagent.model(),
             extensions=[*registry.load(), *mcp_extensions],
             logger=PlainLogger(app_dirs.log_dir()),
         )

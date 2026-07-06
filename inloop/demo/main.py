@@ -18,7 +18,7 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.styles import Style
 
 from inloop.app.agent import Agent
-from inloop.app import tool_server
+from inloop.app import tool_server_config
 from inloop.domain import streaming
 
 from inloop.infra import app_dirs
@@ -198,23 +198,19 @@ async def chat(agent):
 
 
 async def amain():
+    config = toml_config.TomlConfig(app_dirs.config_path())
     if mock := os.environ.get("MOCK"):
         model = providers.mock.MockModel(Path(mock), delay=0.01)
+        subagent_model = None
     else:
-        import anthropic
+        model = config.agent.model()
+        subagent_model = config.subagent.model()
 
-        model = providers.anthropic.AnthropicModel(
-            client=anthropic.AsyncAnthropic(),
-            model="claude-sonnet-5",
-            max_tokens=64_000,
-            effort="medium",
-        )
-
-    config = toml_config.TomlConfig(app_dirs.config_path())
-    async with tool_server.connected(config.mcp) as mcp_extensions:
+    async with tool_server_config.connected(config.mcp) as mcp_extensions:
         registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
         agent = Agent(
             model=model,
+            subagent_model=subagent_model,
             extensions=[*registry.load(), *mcp_extensions],
             logger=PlainLogger(app_dirs.log_dir()),
         )

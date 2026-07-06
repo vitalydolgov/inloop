@@ -46,7 +46,7 @@ Around the loop sit the harness capabilities — each a seam where the harness e
 Two ways to talk to the agent:
 
 - **CLI** — an interactive terminal chat that streams each reply live as the model generates it.
-- **Telegram** — a bot served over a webhook, restricted to a single Telegram user. See [docs/telegram.md](docs/telegram.md).
+- **Telegram** — a bot served over a webhook, restricted to a single Telegram user. See [Telegram](docs/telegram.md).
 
 Running the CLI against Gemma 4 31B:
 
@@ -63,7 +63,7 @@ I should use the calculator__evaluate tool to perform this arithmetic operation.
 
 ## Extensions
 
-An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule under `extensions/`, or living in its own repo — that exposes an `EXTENSION` value describing its tools. It depends only on `inloop-kit`, the small extension toolkit, not the whole framework. Installed extensions are discovered automatically. Writing one means declaring tools with `inloop_kit` and can be tried out with `uv run probe`, without starting the agent. See [docs/extensions.md](docs/extensions.md) for how to create and install one.
+An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled in the [`inloop-builtin`](https://github.com/vitalydolgov/inloop-builtin) submodule under `extensions/`, or living in its own repo — that exposes an `EXTENSION` value describing its tools. It depends only on `inloop-kit`, the small extension toolkit, not the whole framework. Installed extensions are discovered automatically. Writing one means declaring tools with `inloop_kit` and can be tried out with `uv run probe`, without starting the agent. See [Extensions](docs/extensions.md) for how to create and install one.
 
 ### Bundled extensions
 
@@ -77,7 +77,7 @@ An extension is a named bundle of tools that the agent can call. Each is a self-
 
 ### MCP servers
 
-Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with no per-server code — its tools become agent tools, namespaced `<server>__<tool>`. Declare servers in `inloop.toml`; see [docs/mcp.md](docs/mcp.md).
+Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with no per-server code — its tools become agent tools, namespaced `<server>__<tool>`. Declare servers in `inloop.toml`. See [MCP](docs/mcp.md).
 
 ## Setup
 
@@ -115,39 +115,6 @@ Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with 
    ```sh
    uv run demo
    ```
-
-## Quickstart
-
-Wire the pieces together to drive an agent from your own code — this is what `demo/main.py` does to power the CLI:
-
-```python
-import pathlib
-import anthropic
-
-from inloop.app.agent import Agent
-from inloop.infra.directory_registry import DirectoryExtensionRegistry
-from inloop.infra import providers
-
-client = anthropic.AsyncAnthropic()
-registry = DirectoryExtensionRegistry(pathlib.Path("var/extensions"))
-agent = Agent(
-    model=providers.anthropic.AnthropicModel(
-        client,
-        model="claude-sonnet-5",
-        max_tokens=64_000,
-        effort="medium",
-    ),
-    subagent_model=providers.anthropic.AnthropicModel(
-        client,
-        model="claude-sonnet-5",
-        max_tokens=64_000,
-        effort="low",
-    ),
-    extensions=registry.load(),
-)
-```
-
-Drive it with `agent.events(messages)`: feed in an async stream of user messages and render the async stream of `streaming.Event`s it yields back. See `demo/main.py` for a full interactive terminal loop, and [docs/loop.md](docs/loop.md) for how turns, steering, interrupts, and subagents fit together.
 
 ## Documentation
 

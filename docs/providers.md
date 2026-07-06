@@ -2,9 +2,26 @@
 
 A provider is an adapter between the agent and a specific LLM backend. Below are the built-in providers and instructions for writing a new one.
 
+## Selecting a provider
+
+The agent's model is chosen in the [configuration](configuration.md) file. The `[agent.model]` table names a `provider` and carries that provider's settings; `create_model` (`infra/providers/factory.py`) maps the name to a constructor and passes the remaining keys to it. An optional `[subagent.model]` table, same shape, gives spawned subagents a distinct model — when omitted, they reuse the agent's.
+
+```toml
+[agent.model]
+provider = "anthropic"
+model = "claude-sonnet-5"
+max_tokens = 64000
+effort = "medium"
+
+[subagent.model]
+provider = "anthropic"
+model = "claude-haiku-4-5"
+max_tokens = 32000
+```
+
 ## Built-in providers
 
-Each provider lives in its own module under `infra/providers/` and is re-exported from `infra/providers/__init__.py`.
+Each provider lives in its own module under `infra/providers/` and is re-exported from `infra/providers/__init__.py`. To use a provider directly, import its module and instantiate the model class with a backend client and the settings it needs. The examples below show this manual initialization for each built-in provider.
 
 ### Anthropic
 
@@ -21,9 +38,12 @@ model = providers.anthropic.AnthropicModel(
     anthropic.AsyncAnthropic(),
     model="claude-sonnet-5",
     max_tokens=64_000,
-    effort="low"
+    effort="low",
+    thinking_budget=32_000,
 )
 ```
+
+`effort` and `thinking_budget` are optional; pass `thinking_budget` to enable extended thinking with a token budget.
 
 ### Together AI
 
@@ -91,17 +111,31 @@ It is a concrete adapter, so it lives in `infra/providers/` (e.g. `infra/provide
 
 The agent loop reads only these events, so any backend you can stream from will work.
 
-**Wire it in.** Construct your provider and hand it to the `Agent`:
+**Wire it in.** Add a branch to `create_model` (`infra/providers/factory.py`) that recognizes your provider's name and builds it from a settings table, importing the backend SDK lazily inside the branch so it stays optional:
 
 ```python
-import openai
-from inloop.infra import providers
+case "openai":
+    import openai
 
-model = providers.openai.OpenAIModel(openai.OpenAI(), model="...", max_tokens=64_000)
-agent = Agent(model, extensions=extensions.load(MANIFEST))
+    from inloop.infra.providers import openai as adapter
+
+    return adapter.OpenAIModel(
+        client=openai.AsyncOpenAI(),
+        model=settings["model"],
+        max_tokens=settings["max_tokens"],
+    )
 ```
 
-Pass `subagent_model` to run spawned subagents on a different `Model` than the parent — e.g. a lower effort setting for the cheaper, more scoped work a subagent does.
+The agent can then run on it by naming it in the [configuration](configuration.md) file:
+
+```toml
+[agent.model]
+provider = "openai"
+model = "..."
+max_tokens = 64000
+```
+
+A `[subagent.model]` table runs spawned subagents on a different provider or settings than the parent — e.g. a lower effort setting for the cheaper, more scoped work a subagent does.
 
 Re-export your module from `infra/providers/__init__.py` guarded by `try`/`except ImportError` so other providers stay usable without it installed:
 
