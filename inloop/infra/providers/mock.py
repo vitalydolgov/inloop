@@ -20,6 +20,11 @@ class MockModel:
         self._delay = delay
         self._turn = 0
 
+    @property
+    def identifier(self) -> str:
+        """The model's identifier."""
+        return "mock"
+
     async def stream(
         self,
         messages: Sequence[message.Message],

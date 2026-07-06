@@ -88,6 +88,11 @@ class OpenAIModel:
         self._model = model
         self._max_tokens = max_tokens
 
+    @property
+    def identifier(self) -> str:
+        """The model's identifier."""
+        return self._model
+
     async def stream(
         self,
         messages: Sequence[message.Message],

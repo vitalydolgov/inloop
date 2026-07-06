@@ -46,9 +46,11 @@ class Renderer:
         self._live = None
         self._text = ""
 
-    def render_banner(self):
+    def render_banner(self, model_identifier):
         self.console.print(Panel(
-            "[bold]\u2192 [blue]Ctrl+C[/blue] to interrupt \u00b7 [blue]Ctrl+D[/blue] to exit[/bold]",
+            f"[bold]\u2192 [blue]Ctrl+C[/blue] to interrupt \u00b7 [blue]Ctrl+D[/blue] to exit[/bold]\n"
+            f"\n"
+            f"[dim]\u25aa\ufe0e Model:[/dim] {model_identifier}",
             border_style="dim",
             box=rich.box.ROUNDED,
             padding=(0, 1),
@@ -172,13 +174,13 @@ async def _piped_input():
             yield text
 
 
-async def chat(agent):
+async def chat(agent, model_identifier):
     """Drive the interactive chat, keeping the input pinned to the bottom."""
     renderer = Renderer()
     interactive = sys.stdin.isatty()
 
     if interactive:
-        renderer.render_banner()
+        renderer.render_banner(model_identifier)
         prompt = Prompt(
             status=lambda: renderer.status,
             on_submit=renderer.echo_input,
@@ -217,7 +219,7 @@ async def amain():
             logger=PlainLogger(app_dirs.log_dir()),
             environment=SystemEnvironment(SystemClock()),
         )
-        await chat(agent)
+        await chat(agent, model.identifier)
 
 
 def main():

@@ -47,6 +47,11 @@ class AnthropicModel:
         self._effort = effort
         self._thinking_budget = thinking_budget
 
+    @property
+    def identifier(self) -> str:
+        """The model's identifier."""
+        return self._model
+
     async def stream(
         self,
         messages: Sequence[message.Message],

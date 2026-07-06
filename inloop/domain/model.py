@@ -11,6 +11,11 @@ from inloop.domain import tool
 class Model(Protocol):
     """A language model that answers a conversation as a stream of events."""
 
+    @property
+    def identifier(self) -> str:
+        """The model's identifier, such as its provider slug."""
+        ...
+
     def stream(
         self,
         messages: Sequence[message.Message],
