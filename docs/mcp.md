@@ -8,20 +8,15 @@ Authentication is not handled yet — configure servers that need no credentials
 
 `ToolServer` defines the interface: list tools and call them. `make_extension` turns any `ToolServer` into an `Extension`, namespacing its tools as `<server>__<tool>`. `McpToolServer` implements that interface for MCP servers over stdio or HTTP.
 
-Servers are declared in a JSON file — `mcp.json` by default, overridable with `INLOOP_MCP_CONFIG`. The format matches the `mcpServers` object used by other MCP clients. Copy `mcp.json.example` to `mcp.json` and keep the servers you want. When the file is absent, no MCP servers load and the agent runs with only its installed extensions. At startup the runtime connects every configured server, offers their tools to the model alongside the installed extensions, and closes the connections on exit.
+Servers are declared under the `[mcp.servers]` table of the [configuration](configuration.md) file. Each entry is keyed by the name the server mounts under and carries either a `url` for the HTTP transport or a `command` and `args` for stdio. When no servers are declared, the agent runs with only its installed extensions. At startup the runtime connects every configured server, offers their tools to the model alongside the installed extensions, and closes the connections on exit.
 
 ## Example: DeepWiki
 
 [DeepWiki](https://deepwiki.com) is a public, online MCP server that hosts AI-generated documentation for GitHub repositories. It needs no authentication and is a convenient way to test the HTTP transport.
 
-```json
-{
-  "mcpServers": {
-    "deepwiki": {
-      "url": "https://mcp.deepwiki.com/mcp"
-    }
-  }
-}
+```toml
+[mcp.servers.deepwiki]
+url = "https://mcp.deepwiki.com/mcp"
 ```
 
 When the agent starts, the server is loaded as the `deepwiki` extension with these tools:
@@ -55,17 +50,12 @@ if __name__ == "__main__":
     asyncio.run(mcp.run_stdio_async())
 ```
 
-Wire it into `mcp.json` with a stdio entry:
+Wire it in with a stdio entry:
 
-```json
-{
-  "mcpServers": {
-    "testmcp": {
-      "command": "uv",
-      "args": ["run", "testmcp_echo.py"]
-    }
-  }
-}
+```toml
+[mcp.servers.testmcp]
+command = "uv"
+args = ["run", "testmcp_echo.py"]
 ```
 
 When the agent starts, it loads as the `testmcp` extension with the tool named `testmcp__echo`.

@@ -8,7 +8,15 @@ A language model that answers a conversation as an async stream of events. The a
 
 ### `Config` — `app/config.py`
 
-Reads application configuration. The adapter is `EnvConfig` (`infra/env_config.py`), which reads values from environment variables and loads a `.env` file if present.
+Application configuration composed of a section per concern: `extensions` (an `ExtensionsConfig`) and `mcp` (a `ToolServerSource`). The adapter is `TomlConfig` (`infra/toml_config.py`), which reads all sections from a single TOML file and exposes one sub-config each. It also carries a `telegram` section (a `TelegramConfig`).
+
+### `ExtensionsConfig` — `app/config.py`
+
+Reads the directory where installed extensions are stored. The adapter is the `[extensions]` section of `TomlConfig`.
+
+### `TelegramConfig` — `demo/telegram/config.py`
+
+Reads the Telegram bot's token, webhook URL, and the route it listens on. The adapter is the `[telegram]` section of `TomlConfig`.
 
 ### `ExtensionRegistry` — `app/extensions.py`
 
@@ -24,4 +32,4 @@ A server hosting tools the agent can list and call, such as an MCP server. Imple
 
 ### `ToolServerSource` — `app/tool_server.py`
 
-Provides the tool servers configured for the agent, keyed by the name each is mounted under; the `connected` context manager consumes it. The adapter is `McpServerConfig` (`infra/mcp_server.py`), which reads them from an `mcpServers` JSON file.
+Provides the tool servers configured for the agent, keyed by the name each is mounted under; the `connected` context manager consumes it. The adapter is the `[mcp.servers]` section of `TomlConfig` (`infra/toml_config.py`), which builds an `McpToolServer` for each entry.

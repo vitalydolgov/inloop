@@ -103,7 +103,7 @@ uv run extensions install "git+https://github.com/<you>/<extension>@v0.1.0"
 
 This resolves the package and its dependencies into its own directory, recording its source in a registry file alongside it. A path source is installed editable — it keeps importing directly from that directory, so source edits take effect the next time this project runs, no reinstall needed. A git source is copied at the resolved revision.
 
-Extensions are stored under `var/extensions/` by default; set `EXTENSIONS_PATH` in `.env` (see `.env.example`) to use a different location.
+Extensions are stored under `var/extensions/` by default; set `path` in the `[extensions]` table of the [configuration](configuration.md) file to use a different location.
 
 ## Removing an extension
 

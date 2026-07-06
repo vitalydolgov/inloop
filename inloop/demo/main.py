@@ -22,9 +22,8 @@ from inloop.app import tool_server
 from inloop.domain import streaming
 
 from inloop.infra import providers
-from inloop.infra.env_config import EnvConfig
+from inloop.infra import toml_config
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
-from inloop.infra import mcp_server
 from inloop.infra.plain_logger import PlainLogger
 
 
@@ -210,10 +209,9 @@ async def amain():
             effort="medium",
         )
 
-    config = EnvConfig()
-    source = mcp_server.McpServerConfig(config.mcp_config_path())
-    async with tool_server.connected(source) as mcp_extensions:
-        registry = DirectoryExtensionRegistry(config.extensions_path())
+    config = toml_config.TomlConfig(toml_config.default_path())
+    async with tool_server.connected(config.mcp) as mcp_extensions:
+        registry = DirectoryExtensionRegistry(config.extensions.path())
         agent = Agent(
             model=model,
             extensions=[*registry.load(), *mcp_extensions],

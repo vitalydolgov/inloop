@@ -3,8 +3,8 @@
 import asyncio
 import sys
 
+from inloop.infra import toml_config
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
-from inloop.infra.env_config import EnvConfig
 
 
 def _is_bool(val: str) -> bool:
@@ -38,8 +38,8 @@ def main() -> None:
         sys.exit(1)
     extension_name, tool_name, *pairs = sys.argv[1:]
 
-    config = EnvConfig()
-    registry = DirectoryExtensionRegistry(config.extensions_path())
+    config = toml_config.TomlConfig(toml_config.default_path())
+    registry = DirectoryExtensionRegistry(config.extensions.path())
     extensions = {ext.name: ext for ext in registry.load()}
 
     if extension_name not in extensions:

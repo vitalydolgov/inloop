@@ -77,7 +77,7 @@ An extension is a named bundle of tools that the agent can call. Each is a self-
 
 ### MCP servers
 
-Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with no per-server code — its tools become agent tools, namespaced `<server>__<tool>`. Declare servers in `mcp.json`; see [docs/mcp.md](docs/mcp.md).
+Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with no per-server code — its tools become agent tools, namespaced `<server>__<tool>`. Declare servers in `inloop.toml`; see [docs/mcp.md](docs/mcp.md).
 
 ## Setup
 
@@ -87,10 +87,10 @@ Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with 
    git submodule update --init
    ```
 
-2. Copy `.env.example` to `.env` and adjust as needed:
+2. Copy `inloop.toml.example` to `inloop.toml` and adjust as needed:
 
    ```sh
-   cp .env.example .env
+   cp inloop.toml.example inloop.toml
    ```
 
 3. Install the provider groups and export the matching API key.
@@ -153,7 +153,7 @@ Drive it with `agent.events(messages)`: feed in an async stream of user messages
 - [Extensions](docs/extensions.md) — how to create and install extensions
 - [MCP servers](docs/mcp.md) — how to connect to a local or remote MCP server
 - [Providers](docs/providers.md) — supported LLM backends, how to configure them, and how to write your own
-- [Configuration](docs/configuration.md) — environment variables and `.env` settings
+- [Configuration](docs/configuration.md) — the `inloop.toml` settings file and its sections
 - [Ports and adapters](docs/hexagonal.md) — the ports connecting domain and app to their implementations
 - [Logging](docs/logging.md) — recording user input, model output, and tool calls
 - [Testing](docs/testing.md) — test layout, how to run tests, and what gets covered

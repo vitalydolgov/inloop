@@ -1,10 +1,8 @@
 """Tool server backed by a Model Context Protocol server, over stdio or HTTP."""
 
-import json
 from contextlib import AsyncExitStack
 from pathlib import Path
 
-from inloop.app.tool_server import ToolServer
 from inloop.domain.tool import ToolSpec
 
 
@@ -56,25 +54,3 @@ class McpToolServer:
             block.text for block in result.content if getattr(block, "type", None) == "text"
         )
         return f"[tool error] {text}" if result.isError else text
-
-
-class McpServerConfig:
-    """Tool servers declared in an `mcpServers` JSON config file."""
-
-    def __init__(self, path: Path):
-        self._path = path
-
-    def load(self) -> dict[str, ToolServer]:
-        """Return a tool server for each entry in the config file, if it exists."""
-        if not self._path.exists():
-            return {}
-        config = json.loads(self._path.read_text())
-        return {
-            name: McpToolServer(
-                command=entry.get("command"),
-                args=entry.get("args"),
-                env=entry.get("env"),
-                url=entry.get("url"),
-            )
-            for name, entry in config.get("mcpServers", {}).items()
-        }
