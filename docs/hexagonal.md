@@ -22,7 +22,7 @@ Describes the ambient facts the agent puts in front of the model as a system pro
 
 Reports the current calendar date. The adapter is `SystemClock` (`infra/system_clock.py`), which reads today's date from the operating system. Consumed by `SystemEnvironment` to date the environment description.
 
-### `ToolServer` — `app/tool_server_config.py`
+### `ToolServer` — `app/tool_server.py`
 
 A server hosting tools the agent can list and call, such as an MCP server. Implementations provide `connect`/`aclose` lifecycle hooks so the app layer can manage their transport. The adapter is `McpToolServer` (`infra/mcp_server.py`), which speaks the Model Context Protocol over stdio or HTTP.
 

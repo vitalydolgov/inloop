@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
-from inloop.app.tool_server_config import ToolServer
+from inloop.app.tool_server import ToolServer
 from inloop.infra.mcp_server import McpToolServer
 from inloop.infra.providers import factory
 

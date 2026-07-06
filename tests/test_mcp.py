@@ -2,6 +2,7 @@
 
 import asyncio
 
+from inloop.app import tool_server
 from inloop.app import tool_server_config
 from inloop.domain.tool import ToolSpec
 
@@ -47,7 +48,7 @@ def test_loads_advertised_specs_as_named_extension() -> None:
     ]
     server = _FakeServer(specs)
 
-    extension = asyncio.run(tool_server_config.make_extension("calculator", server))
+    extension = asyncio.run(tool_server.make_extension("calculator", server))
 
     assert extension.name == "calculator"
     assert [t.name for t in extension.tools] == ["add", "subtract"]
@@ -59,7 +60,7 @@ def test_loads_advertised_specs_as_named_extension() -> None:
 def test_tool_proxies_call_to_the_server() -> None:
     server = _FakeServer([ToolSpec("shout", "Uppercase.", {})], {"shout": "HELLO"})
 
-    extension = asyncio.run(tool_server_config.make_extension("echo", server))
+    extension = asyncio.run(tool_server.make_extension("echo", server))
     result = asyncio.run(extension.tools[0].execute({"text": "hello"}))
 
     assert result == "HELLO"
@@ -70,7 +71,7 @@ def test_each_tool_proxies_under_its_own_name() -> None:
     specs = [ToolSpec("first", "First.", {}), ToolSpec("second", "Second.", {})]
     server = _FakeServer(specs)
 
-    extension = asyncio.run(tool_server_config.make_extension("srv", server))
+    extension = asyncio.run(tool_server.make_extension("srv", server))
     asyncio.run(extension.tools_by_name()["srv__second"].execute({"x": 1}))
 
     assert server.calls == [("second", {"x": 1})]
