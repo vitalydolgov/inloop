@@ -18,10 +18,13 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.styles import Style
 
 from inloop.app.agent import Agent
+from inloop.app import tool_server
 from inloop.domain import streaming
 
+from inloop.infra import providers
 from inloop.infra.env_config import EnvConfig
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
+from inloop.infra import mcp_server
 from inloop.infra.plain_logger import PlainLogger
 
 
@@ -194,9 +197,7 @@ async def chat(agent):
                 task.cancel()
 
 
-def main():
-    from inloop.infra import providers
-
+async def amain():
     if mock := os.environ.get("MOCK"):
         model = providers.mock.MockModel(Path(mock), delay=0.01)
     else:
@@ -210,10 +211,16 @@ def main():
         )
 
     config = EnvConfig()
-    registry = DirectoryExtensionRegistry(config.extensions_path())
-    agent = Agent(
-        model=model,
-        extensions=registry.load(),
-        logger=PlainLogger(Path("var/log")),
-    )
-    asyncio.run(chat(agent))
+    source = mcp_server.McpServerConfig(config.mcp_config_path())
+    async with tool_server.connected(source) as mcp_extensions:
+        registry = DirectoryExtensionRegistry(config.extensions_path())
+        agent = Agent(
+            model=model,
+            extensions=[*registry.load(), *mcp_extensions],
+            logger=PlainLogger(Path("var/log")),
+        )
+        await chat(agent)
+
+
+def main():
+    asyncio.run(amain())

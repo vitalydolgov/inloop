@@ -10,3 +10,7 @@ class Config(Protocol):
     def extensions_path(self) -> Path:
         """Return the directory where installed extensions are stored."""
         ...
+
+    def mcp_config_path(self) -> Path:
+        """Return the path to the MCP servers configuration file."""
+        ...

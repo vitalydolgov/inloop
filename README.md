@@ -68,13 +68,16 @@ An extension is a named bundle of tools that the agent can call. Each is a self-
 ### Bundled extensions
 
 - `calculator` — evaluates arithmetic expressions (a minimal example extension)
-- `browser` — drives a Chrome browser for web automation
 - `resources` — reads, writes, and patches local files, and fetches the readable text content of a web page over HTTP
 
 ### External extensions
 
 - [`ios-simulator`](https://github.com/vitalydolgov/ios-simulator-inloop) — drives an iOS simulator through Appium
 - [`newsfeed`](https://github.com/vitalydolgov/newsfeed-inloop) — reads vtech news from multiple sources — Hacker News, etc. — each as its own feed
+
+### MCP servers
+
+Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with no per-server code — its tools become agent tools, namespaced `<server>__<tool>`. Declare servers in `mcp.json`; see [docs/mcp.md](docs/mcp.md).
 
 ## Setup
 
@@ -148,6 +151,7 @@ Drive it with `agent.events(messages)`: feed in an async stream of user messages
 
 - [The agent loop](docs/loop.md) — turns, streaming events, steering, interrupts, and subagents
 - [Extensions](docs/extensions.md) — how to create and install extensions
+- [MCP servers](docs/mcp.md) — how to connect to a local or remote MCP server
 - [Providers](docs/providers.md) — supported LLM backends, how to configure them, and how to write your own
 - [Configuration](docs/configuration.md) — environment variables and `.env` settings
 - [Ports and adapters](docs/hexagonal.md) — the ports connecting domain and app to their implementations

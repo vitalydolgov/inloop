@@ -8,12 +8,18 @@ from functools import wraps
 
 
 @dataclass
-class Tool:
-    """A named capability the model can ask to invoke, described by its inputs."""
+class ToolSpec:
+    """A tool's advertised interface: its name, description, and input schema."""
 
     name: str
     description: str
     parameters: dict[str, object]
+
+
+@dataclass
+class Tool(ToolSpec):
+    """A named capability the model can ask to invoke, described by its inputs."""
+
     execute: Callable[[dict[str, object]], Awaitable[str]]
 
 

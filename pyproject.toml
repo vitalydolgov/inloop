@@ -30,18 +30,17 @@ default-groups = ["dev", "bundled_extensions"]
 
 [tool.uv.sources]
 inloop-kit = { path = "inloop_kit", editable = true }
-browser = { path = "extensions/browser", editable = true }
 calculator = { path = "extensions/calculator", editable = true }
 resources = { path = "extensions/resources", editable = true }
 
 [dependency-groups]
 dev = [
+    "mcp>=1.0.0",
     "prompt-toolkit>=3.0.0",
     "pytest>=8.0.0",
     "rich>=13.0.0",
 ]
 bundled_extensions = [
-    "browser",
     "calculator",
     "resources",
 ]
@@ -54,7 +53,8 @@ anthropic = ["anthropic>=0.112.0"]
 together = ["together>=2.19.0"]
 
 [tool.pytest.ini_options]
-addopts = ["-m", "not anthropic"]
+addopts = ["-m", "not anthropic and not deepwiki"]
 markers = [
     "anthropic: hits the real Anthropic API",
+    "deepwiki: hits the real DeepWiki MCP server",
 ]
