@@ -1,16 +1,17 @@
-"""Together AI Chat Completions API adapter."""
+"""OpenAI-compatible Chat Completions API adapter."""
 
 import json
 from collections.abc import AsyncIterator, Sequence
 
-import together
+import openai
 
 from inloop.domain import message
 from inloop.domain import streaming
 from inloop.domain import tool
 
+
 def _messages(msgs: Sequence[message.Message]) -> list[dict[str, object]]:
-    """Render domain messages as Together/OpenAI chat messages."""
+    """Render domain messages as OpenAI chat messages."""
     result: list[dict[str, object]] = []
     for msg in msgs:
         match msg.role:
@@ -60,7 +61,7 @@ def _messages(msgs: Sequence[message.Message]) -> list[dict[str, object]]:
 
 
 def _tool_specs(tools: Sequence[tool.Tool]) -> list[dict[str, object]]:
-    """Render domain tools as Together/OpenAI function specs."""
+    """Render domain tools as OpenAI function specs."""
     return [
         {
             "type": "function",
@@ -74,12 +75,12 @@ def _tool_specs(tools: Sequence[tool.Tool]) -> list[dict[str, object]]:
     ]
 
 
-class TogetherModel:
-    """A Model backed by Together AI's Chat Completions API."""
+class OpenAIModel:
+    """A Model backed by an OpenAI-compatible Chat Completions API."""
 
     def __init__(
         self,
-        client: together.AsyncTogether,
+        client: openai.AsyncOpenAI,
         model: str,
         max_tokens: int,
     ) -> None:
@@ -117,14 +118,15 @@ class TogetherModel:
                 finish_reason = choice.finish_reason
 
             delta = choice.delta
-            if delta.reasoning:
+            reasoning = getattr(delta, "reasoning", None)
+            if reasoning:
                 if in_text:
                     in_text = False
                     yield streaming.TextPhase.ENDED
                 if not in_thinking:
                     in_thinking = True
                     yield streaming.ThinkingPhase.STARTED
-                yield streaming.ThinkingDelta(delta.reasoning)
+                yield streaming.ThinkingDelta(reasoning)
 
             if delta.content:
                 if in_thinking:

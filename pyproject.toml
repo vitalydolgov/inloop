@@ -10,6 +10,7 @@ requires-python = ">=3.11"
 dependencies = [
     "inloop-kit",
     "mcp>=1.0.0",
+    "openai>=1.0.0",
     "prompt-toolkit>=3.0.0",
     "python-dotenv>=1.2.2",
     "rich>=13.0.0",
@@ -22,7 +23,6 @@ telegram = [
     "pyngrok>=7.0",
 ]
 anthropic = ["anthropic>=0.112.0"]
-together = ["together>=2.19.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -45,6 +45,7 @@ resources = { path = "extensions/resources", editable = true }
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
+    "ruff>=0.15.20",
 ]
 bundled_extensions = [
     "calculator",

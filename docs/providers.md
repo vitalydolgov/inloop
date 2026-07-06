@@ -45,23 +45,45 @@ model = providers.anthropic.AnthropicModel(
 
 `effort` and `thinking_budget` are optional; pass `thinking_budget` to enable extended thinking with a token budget.
 
-### Together AI
+### OpenAI and OpenAI-compatible
+
+Use this provider for any backend that exposes the OpenAI Chat Completions API. The `openai` SDK is a core dependency, so no extra is needed. The factory also recognizes `together` and `fireworks` as presets with their default base URLs.
+
+The example below uses Together AI; the same pattern works for any OpenAI-compatible endpoint by setting the appropriate `base_url` and API key.
 
 ```sh
-uv sync --extra together
 export TOGETHER_API_KEY="..."
 ```
 
 ```python
-import together
+import openai
 from inloop.infra import providers
 
-model = providers.together.TogetherModel(
-    together.AsyncTogether(),
+model = providers.openai.OpenAIModel(
+    openai.AsyncOpenAI(
+        base_url="https://api.together.xyz/v1",
+        api_key="...",
+    ),
     model="google/gemma-4-31B-it",
     max_tokens=64_000,
 )
 ```
+
+Or configure it directly using a preset:
+
+```toml
+[agent.model]
+provider = "together"
+model = "google/gemma-4-31B-it"
+max_tokens = 64000
+```
+
+Below is the list of supported presets; extend as needed:
+
+- `provider = "together"` with `TOGETHER_API_KEY`
+- `provider = "fireworks"` with `FIREWORKS_API_KEY`
+- `provider = "openai"` with `OPENAI_API_KEY`
+- Any other compatible provider can be configured by setting `provider = "openai"` and its `base_url`
 
 ### Mock
 
@@ -98,7 +120,7 @@ def stream(
 
 It is a concrete adapter, so it lives in `infra/providers/` (e.g. `infra/providers/openai.py`) and may import the backend SDK freely. Implementing one is three translations:
 
-**1. Domain messages → backend format.** Walk each `Message` and map its content blocks onto whatever shape the backend expects. `infra/providers/together.py` shows this for an OpenAI-style chat API.
+**1. Domain messages → backend format.** Walk each `Message` and map its content blocks onto whatever shape the backend expects. `infra/providers/openai.py` shows this for an OpenAI-style chat API.
 
 **2. Domain tools → backend specs.** Render each `Tool`'s `name`, `description`, and `parameters` (a JSON Schema) into the backend's function/tool format. Only send tools when the list is non-empty.
 
