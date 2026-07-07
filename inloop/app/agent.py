@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import AsyncIterator, Sequence
 
+from inloop.app.builtin import spawn
 from inloop.app.conversation import Conversation
 from inloop.app.inbox import Inbox
 from inloop.app import logger
@@ -15,24 +16,6 @@ from inloop.domain import extension
 from inloop.domain import tool
 
 INTERRUPTED_NOTICE = "[Interrupted by user]"
-
-SUBAGENT_TOOL = "agent__spawn"
-
-SUBAGENT_DESCRIPTION = (
-    "Delegate a scoped task to a fresh subagent and return its final answer. "
-    "The subagent runs its own conversation with the same tools and reports back."
-)
-
-SUBAGENT_PARAMETERS = {
-    "type": "object",
-    "properties": {
-        "task": {
-            "type": "string",
-            "description": "The task for the subagent to carry out.",
-        }
-    },
-    "required": ["task"],
-}
 
 
 async def _once(text):
@@ -62,9 +45,7 @@ class Agent:
         for t in self._builtin_tools:
             self._tools[t.name] = t
         if can_spawn:
-            self._tools[SUBAGENT_TOOL] = tool.Tool(
-                SUBAGENT_TOOL, SUBAGENT_DESCRIPTION, SUBAGENT_PARAMETERS, self._spawn
-            )
+            self._tools[spawn.NAME] = spawn.spawn_tool(self._spawn)
         self._logger = logger
         self._id = agent_id
         self._children = []
