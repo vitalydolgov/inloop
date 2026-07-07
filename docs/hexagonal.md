@@ -18,6 +18,10 @@ Records entries produced while the agent runs. Each entry is tagged with the id 
 
 A server hosting tools the agent can list and call, such as an MCP server. Implementations provide `connect`/`aclose` lifecycle hooks so the app layer can manage their transport. The adapter is `McpToolServer` (`infra/mcp_server.py`), which speaks the Model Context Protocol over stdio or HTTP.
 
+### `ToolPublisher` — `app/tool_publisher.py`
+
+Runs a server that exposes an installed extension's tools to external clients — the inverse of `ToolServer`. The `serve` workflow selects an extension by name and hands it over. The adapter is `McpToolPublisher` (`infra/mcp_publisher.py`), which publishes the extension's tools as a Model Context Protocol server over stdio.
+
 ## Configuration
 
 ### `Config` — `app/config.py`

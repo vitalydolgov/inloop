@@ -10,6 +10,25 @@ Authentication is not handled yet — configure servers that need no credentials
 
 Servers are declared under the `[mcp.servers]` table of the [configuration](configuration.md) file. Each entry is keyed by the name the server mounts under and carries either a `url` for the HTTP transport or a `command` and `args` for stdio. When no servers are declared, the agent runs with only its installed extensions. At startup the runtime connects every configured server, offers their tools to the model alongside the installed extensions, and closes the connections on exit.
 
+## Serving an extension as an MCP server
+
+The `serve` command runs the reverse wiring: it publishes an installed extension's tools as a local MCP server over stdio, so any MCP client can call them.
+
+```sh
+uv run inloop serve calculator
+```
+
+The server takes the extension's name and advertises its tools under their bare names, without the `<server>__` namespace an extension picks up when loaded the other way. It reads MCP requests from stdin and writes responses to stdout, so point a client's stdio transport at that command:
+
+```json
+{
+  "command": "uv",
+  "args": ["run", "inloop", "serve", "calculator"]
+}
+```
+
+`ToolPublisher` defines the interface — hand it an extension and it serves the extension's tools until the client disconnects. `McpToolPublisher` implements it for the stdio transport.
+
 ## Examples
 
 The fastest way to try MCP servers is to add one of the examples below to `inloop.toml`. HTTP servers need no local tooling; stdio servers rely on `uvx`/`uv` or `npx`, which must be installed on your machine.
