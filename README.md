@@ -138,6 +138,16 @@ uv tool install "inloop[anthropic]"
 inloop
 ```
 
+## Subcommands
+
+`inloop` without a subcommand runs the agent loop, the subcommands cover the surrounding tasks:
+
+| Subcommand | Options | What it does |
+| --- | --- | --- |
+| `extensions` | `install\|uninstall\|list` | Manage installed extensions — see [Extensions](docs/extensions.md) |
+| `probe` | `<extension> <tool> [key=value ...]` | Run a single tool without starting the agent — see [Extensions](docs/extensions.md) |
+| `telegram-demo` | | Serve the agent as a Telegram bot — see [Telegram](docs/telegram.md) |
+
 ## Documentation
 
 - [The agent loop](docs/loop.md) — turns, streaming events, steering, interrupts, and subagents
