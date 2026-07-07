@@ -20,7 +20,7 @@ A server hosting tools the agent can list and call, such as an MCP server. Imple
 
 ### `ToolPublisher` — `app/tool_publisher.py`
 
-Runs a server that exposes an installed extension's tools to external clients — the inverse of `ToolServer`. The `serve` workflow selects an extension by name and hands it over. The adapter is `McpToolPublisher` (`infra/mcp_publisher.py`), which publishes the extension's tools as a Model Context Protocol server over stdio.
+Runs a server that exposes installed extensions' tools to external clients — the inverse of `ToolServer`. The `serve` workflow hands it every installed extension. The adapter is `McpToolPublisher` (`infra/mcp_publisher.py`), which publishes the extensions' tools, namespaced `<extension>__<tool>`, as a single Model Context Protocol server over stdio.
 
 ## Configuration
 

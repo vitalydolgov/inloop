@@ -83,7 +83,7 @@ An extension is a named bundle of tools that the agent can call. Each is a self-
 
 ### MCP servers
 
-Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with no per-server code — its tools become agent tools, namespaced `<server>__<tool>`. Declare servers in `inloop.toml`. The reverse works too: `uv run inloop serve <extension>` publishes an installed extension as a local MCP server other clients can call. See [MCP](docs/mcp.md) for remote and local server examples.
+Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with no per-server code — its tools become agent tools, namespaced `<server>__<tool>`. Declare servers in `inloop.toml`. The reverse works too: `uv run inloop extensions serve` publishes every installed extension as a local MCP server other clients can call. See [MCP](docs/mcp.md) for remote and local server examples.
 
 ## Setup
 

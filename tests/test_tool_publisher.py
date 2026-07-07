@@ -1,8 +1,6 @@
-"""Tests for selecting an installed extension and handing it to a publisher."""
+"""Tests for handing every installed extension to a publisher."""
 
 import asyncio
-
-import pytest
 
 from inloop.app import tool_publisher
 from inloop.domain.extension import Extension
@@ -23,30 +21,28 @@ class _FakeRegistry:
 
 
 class _FakePublisher:
-    """A ToolPublisher that records the extension it was asked to run."""
+    """A ToolPublisher that records the extensions it was asked to run."""
 
     def __init__(self) -> None:
-        self.served: Extension | None = None
+        self.served: list[Extension] | None = None
 
-    async def run(self, ext: Extension) -> None:
-        self.served = ext
+    async def run(self, extensions: list[Extension]) -> None:
+        self.served = extensions
 
 
-def test_serves_the_named_extension() -> None:
+def test_serves_every_installed_extension() -> None:
     registry = _FakeRegistry([_extension("calculator"), _extension("weather")])
     publisher = _FakePublisher()
 
-    asyncio.run(tool_publisher.serve(registry, "weather", publisher))
+    asyncio.run(tool_publisher.serve(registry, publisher))
 
     assert publisher.served is not None
-    assert publisher.served.name == "weather"
+    assert [e.name for e in publisher.served] == ["calculator", "weather"]
 
 
-def test_raises_for_an_unknown_extension() -> None:
-    registry = _FakeRegistry([_extension("calculator")])
+def test_serves_nothing_when_no_extensions_are_installed() -> None:
     publisher = _FakePublisher()
 
-    with pytest.raises(LookupError):
-        asyncio.run(tool_publisher.serve(registry, "missing", publisher))
+    asyncio.run(tool_publisher.serve(_FakeRegistry([]), publisher))
 
-    assert publisher.served is None
+    assert publisher.served == []

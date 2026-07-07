@@ -10,24 +10,24 @@ Authentication is not handled yet — configure servers that need no credentials
 
 Servers are declared under the `[mcp.servers]` table of the [configuration](configuration.md) file. Each entry is keyed by the name the server mounts under and carries either a `url` for the HTTP transport or a `command` and `args` for stdio. When no servers are declared, the agent runs with only its installed extensions. At startup the runtime connects every configured server, offers their tools to the model alongside the installed extensions, and closes the connections on exit.
 
-## Serving an extension as an MCP server
+## Serving extensions as an MCP server
 
-The `serve` command runs the reverse wiring: it publishes an installed extension's tools as a local MCP server over stdio, so any MCP client can call them.
+`inloop extensions serve` runs the reverse wiring: it publishes every installed extension's tools as a single local MCP server over stdio, so any MCP client can call them.
 
 ```sh
-uv run inloop serve calculator
+uv run inloop extensions serve
 ```
 
-The server takes the extension's name and advertises its tools under their bare names, without the `<server>__` namespace an extension picks up when loaded the other way. It reads MCP requests from stdin and writes responses to stdout, so point a client's stdio transport at that command:
+Every extension's tools are advertised under the same `<extension>__<tool>` namespace they get when loaded the other way, so `evaluate` from the `calculator` extension is exposed as `calculator__evaluate`. The command reads MCP requests from stdin and writes responses to stdout, so point a client's stdio transport at it:
 
 ```json
 {
   "command": "uv",
-  "args": ["run", "inloop", "serve", "calculator"]
+  "args": ["run", "inloop", "extensions", "serve"]
 }
 ```
 
-`ToolPublisher` defines the interface — hand it an extension and it serves the extension's tools until the client disconnects. `McpToolPublisher` implements it for the stdio transport.
+`ToolPublisher` defines the interface — hand it the installed extensions and it serves their tools until the client disconnects. `McpToolPublisher` implements it for the stdio transport.
 
 ## Examples
 

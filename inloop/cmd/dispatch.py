@@ -34,15 +34,11 @@ def main():
             from inloop.cmd import probe
 
             _run("probe", probe.main, args)
-        case "serve":
-            from inloop.cmd import serve
-
-            _run("serve", serve.main, args)
         case "telegram-demo":
             from inloop.demo.telegram import main as telegram_demo
 
             _run("telegram-demo", telegram_demo.main, args)
         case _:
             print(f"Unknown command: {command}", file=sys.stderr)
-            print("Usage: inloop [extensions|probe|serve|telegram-demo]", file=sys.stderr)
+            print("Usage: inloop [extensions|probe|telegram-demo]", file=sys.stderr)
             sys.exit(1)

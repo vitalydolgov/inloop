@@ -1,9 +1,12 @@
-"""Install, remove, and list extensions stored outside the uv project."""
+"""Install, remove, list, and serve extensions stored outside the uv project."""
 
 import argparse
+import asyncio
 
+from inloop.app import tool_publisher
 from inloop.infra import app_dirs
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
+from inloop.infra.mcp_publisher import McpToolPublisher
 
 
 def main() -> None:
@@ -18,6 +21,8 @@ def main() -> None:
     uninstall.add_argument("name")
 
     subcommands.add_parser("list", help="List installed extensions")
+
+    subcommands.add_parser("serve", help="Publish installed extensions as a local MCP server")
 
     args = parser.parse_args()
     storage = DirectoryExtensionRegistry(app_dirs.extensions_dir())
@@ -34,3 +39,6 @@ def main() -> None:
             bundled = {ext.name: "bundled" for ext in storage.load() if ext.name not in installed}
             for name, source in sorted((installed | bundled).items()):
                 print(f"{name} ({source})")
+        case "serve":
+            publisher = McpToolPublisher()
+            asyncio.run(tool_publisher.serve(storage, publisher))
