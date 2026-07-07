@@ -25,6 +25,11 @@ class MockModel:
         """The model's identifier."""
         return "mock"
 
+    @property
+    def context_window(self) -> int:
+        """The most tokens the model accepts in one request, or 0 when unbounded."""
+        return 0
+
     async def stream(
         self,
         messages: Sequence[message.Message],
@@ -46,4 +51,4 @@ class MockModel:
                 yield streaming.TextDelta(reply[start:start + self._chunk_size])
             yield streaming.TextPhase.ENDED
 
-        yield streaming.MessageCompleted(text=reply, stop_reason="end_turn")
+        yield streaming.MessageCompleted(text=reply, stop_reason="end_turn", input_tokens=0)

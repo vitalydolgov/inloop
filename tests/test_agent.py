@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import AsyncIterator, Sequence
 
 from inloop.app import agent
+from inloop.app import compaction
 from inloop.app import logger
 from inloop.domain import extension
 from inloop.domain import message
@@ -13,6 +14,8 @@ from inloop.domain import tool
 
 class _ScriptedModel:
     """A Model that replies with a fixed line per turn and records what it saw."""
+
+    context_window = 0
 
     def __init__(self, replies: list[str]) -> None:
         self._replies = iter(replies)
@@ -31,11 +34,13 @@ class _ScriptedModel:
         self.systems.append(system)
         reply = next(self._replies)
         yield streaming.TextDelta(reply)
-        yield streaming.MessageCompleted(text=reply, stop_reason="end_turn")
+        yield streaming.MessageCompleted(text=reply, stop_reason="end_turn", input_tokens=0)
 
 
 class _RaisingModel:
     """A Model whose stream yields once, then raises."""
+
+    context_window = 0
 
     async def stream(
         self,
@@ -49,6 +54,8 @@ class _RaisingModel:
 
 class _TurnModel:
     """A Model that yields a scripted list of events per turn and records history."""
+
+    context_window = 0
 
     def __init__(self, turns: list[list[streaming.Event]]) -> None:
         self._turns = iter(turns)
@@ -94,9 +101,9 @@ def test_run_streams_events_for_each_message() -> None:
 
     assert events == [
         streaming.TextDelta("one"),
-        streaming.MessageCompleted(text="one", stop_reason="end_turn"),
+        streaming.MessageCompleted(text="one", stop_reason="end_turn", input_tokens=0),
         streaming.TextDelta("two"),
-        streaming.MessageCompleted(text="two", stop_reason="end_turn"),
+        streaming.MessageCompleted(text="two", stop_reason="end_turn", input_tokens=0),
     ]
 
 
@@ -170,6 +177,8 @@ def test_runs_requested_tool_and_feeds_result_back() -> None:
     )
 
     class _ToolThenAnswer:
+        context_window = 0
+
         def __init__(self) -> None:
             self._turn = 0
             self.seen: list[list[message.Message]] = []
@@ -184,11 +193,11 @@ def test_runs_requested_tool_and_feeds_result_back() -> None:
             self._turn += 1
             if self._turn == 1:
                 yield streaming.ToolUse(id="t1", name="test__add", input={"a": 2, "b": 2})
-                yield streaming.MessageCompleted(text="", stop_reason="tool_use")
+                yield streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0)
             else:
                 yield streaming.TextDelta("the sum is 4")
                 yield streaming.MessageCompleted(
-                    text="the sum is 4", stop_reason="end_turn"
+                    text="the sum is 4", stop_reason="end_turn", input_tokens=0
                 )
 
     model = _ToolThenAnswer()
@@ -201,7 +210,7 @@ def test_runs_requested_tool_and_feeds_result_back() -> None:
 
     assert ran == [{"a": 2, "b": 2}]
     assert events[-1] == streaming.MessageCompleted(
-        text="the sum is 4", stop_reason="end_turn"
+        text="the sum is 4", stop_reason="end_turn", input_tokens=0
     )
     assert model.seen[1] == [
         message.Message(message.Role.USER, [message.Text("add 2 and 2")]),
@@ -230,9 +239,9 @@ def test_runs_every_tool_requested_in_one_turn() -> None:
             [
                 streaming.ToolUse(id="c1", name="test__first", input={"x": 1}),
                 streaming.ToolUse(id="c2", name="test__second", input={"y": 2}),
-                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+                streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
             ],
-            [streaming.MessageCompleted(text="done", stop_reason="end_turn")],
+            [streaming.MessageCompleted(text="done", stop_reason="end_turn", input_tokens=0)],
         ]
     )
     chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [first, second])])
@@ -273,9 +282,9 @@ def test_assistant_turn_keeps_text_before_tool_calls() -> None:
             [
                 streaming.TextDelta("let me check"),
                 streaming.ToolUse(id="c1", name="test__only", input={}),
-                streaming.MessageCompleted(text="let me check", stop_reason="tool_use"),
+                streaming.MessageCompleted(text="let me check", stop_reason="tool_use", input_tokens=0),
             ],
-            [streaming.MessageCompleted(text="final", stop_reason="end_turn")],
+            [streaming.MessageCompleted(text="final", stop_reason="end_turn", input_tokens=0)],
         ]
     )
     chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [only])])
@@ -309,6 +318,8 @@ def test_logs_user_input_model_output_and_tool_results() -> None:
     adder = tool.Tool("add", "Add two numbers.", {}, ran)
 
     class _ToolThenAnswer:
+        context_window = 0
+
         def __init__(self) -> None:
             self._turn = 0
 
@@ -322,11 +333,11 @@ def test_logs_user_input_model_output_and_tool_results() -> None:
             if self._turn == 1:
                 yield streaming.ThinkingDelta("thinking about it")
                 yield streaming.ToolUse(id="t1", name="test__add", input={"a": 2, "b": 2})
-                yield streaming.MessageCompleted(text="", stop_reason="tool_use")
+                yield streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0)
             else:
                 yield streaming.TextDelta("the sum is 4")
                 yield streaming.MessageCompleted(
-                    text="the sum is 4", stop_reason="end_turn"
+                    text="the sum is 4", stop_reason="end_turn", input_tokens=0
                 )
 
     recorder = _RecordingLogger()
@@ -346,7 +357,7 @@ def test_logs_user_input_model_output_and_tool_results() -> None:
         ("main", message.Message(message.Role.USER, [message.Text("add 2 and 2")])),
         ("main", streaming.ThinkingDelta("thinking about it")),
         ("main", streaming.ToolUse(id="t1", name="test__add", input={"a": 2, "b": 2})),
-        ("main", streaming.MessageCompleted(text="", stop_reason="tool_use")),
+        ("main", streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0)),
         (
             "main",
             message.Message(
@@ -356,7 +367,7 @@ def test_logs_user_input_model_output_and_tool_results() -> None:
         ),
         ("main", message.Message(message.Role.USER, [message.ToolResult("t1", "4")])),
         ("main", streaming.TextDelta("the sum is 4")),
-        ("main", streaming.MessageCompleted(text="the sum is 4", stop_reason="end_turn")),
+        ("main", streaming.MessageCompleted(text="the sum is 4", stop_reason="end_turn", input_tokens=0)),
         (
             "main",
             message.Message(message.Role.ASSISTANT, [message.Text("the sum is 4")]),
@@ -385,7 +396,7 @@ def test_interrupt_stops_streaming_and_emits_an_event() -> None:
             streaming.TextDelta("par"),
             streaming.TextDelta("tial"),
             streaming.TextDelta("more"),
-            streaming.MessageCompleted(text="partial more", stop_reason="end_turn"),
+            streaming.MessageCompleted(text="partial more", stop_reason="end_turn", input_tokens=0),
         ],
         after=2,
     )
@@ -445,7 +456,7 @@ def test_tool_error_emits_a_failed_event() -> None:
         [
             [
                 streaming.ToolUse(id="c1", name="test__bad", input={}),
-                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+                streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
             ],
         ]
     )
@@ -491,9 +502,9 @@ def test_steering_message_injected_between_tool_turns() -> None:
         [
             [
                 streaming.ToolUse(id="c1", name="test__work", input={}),
-                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+                streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
             ],
-            [streaming.MessageCompleted(text="acknowledged", stop_reason="end_turn")],
+            [streaming.MessageCompleted(text="acknowledged", stop_reason="end_turn", input_tokens=0)],
         ]
     )
     chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [work])])
@@ -531,9 +542,9 @@ def test_steered_message_is_logged() -> None:
         [
             [
                 streaming.ToolUse(id="c1", name="test__work", input={}),
-                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+                streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
             ],
-            [streaming.MessageCompleted(text="ok", stop_reason="end_turn")],
+            [streaming.MessageCompleted(text="ok", stop_reason="end_turn", input_tokens=0)],
         ]
     )
     recorder = _RecordingLogger()
@@ -567,10 +578,10 @@ def test_events_can_be_called_again_after_a_tool_turn() -> None:
         [
             [
                 streaming.ToolUse(id="c1", name="test__work", input={}),
-                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+                streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
             ],
-            [streaming.MessageCompleted(text="first", stop_reason="end_turn")],
-            [streaming.MessageCompleted(text="second", stop_reason="end_turn")],
+            [streaming.MessageCompleted(text="first", stop_reason="end_turn", input_tokens=0)],
+            [streaming.MessageCompleted(text="second", stop_reason="end_turn", input_tokens=0)],
         ]
     )
     chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [work])])
@@ -583,8 +594,97 @@ def test_events_can_be_called_again_after_a_tool_turn() -> None:
     events = asyncio.run(gather())
 
     assert events == [
-        streaming.MessageCompleted(text="second", stop_reason="end_turn"),
+        streaming.MessageCompleted(text="second", stop_reason="end_turn", input_tokens=0),
     ]
+
+
+class _CompactingModel:
+    """A Model with a small window whose every reply reports a full context."""
+
+    context_window = 100
+
+    def __init__(self) -> None:
+        self.seen: list[list[message.Message]] = []
+
+    async def stream(
+        self,
+        messages: Sequence[message.Message],
+        tools: Sequence[tool.Tool] = (),
+        system: str = "",
+    ) -> AsyncIterator[streaming.Event]:
+        self.seen.append(list(messages))
+        last = messages[-1].content[-1]
+        if isinstance(last, message.Text) and last.text == compaction.SUMMARY_INSTRUCTION:
+            yield streaming.MessageCompleted(text="BRIEFING", stop_reason="end_turn", input_tokens=0)
+            return
+        yield streaming.MessageCompleted(text="answer", stop_reason="end_turn", input_tokens=90)
+
+
+def test_compacts_after_a_completed_turn_that_fills_the_window() -> None:
+    model = _CompactingModel()
+    chat_agent = agent.Agent(model)
+
+    async def gather() -> list[streaming.Event]:
+        return [event async for event in chat_agent.events(_stream(["hi", "again"]))]
+
+    events = asyncio.run(gather())
+
+    assert events.index(streaming.Compaction.STARTED) < events.index(streaming.Compaction.ENDED)
+    summarized = model.seen[2]
+    assert summarized[-1] == message.Message(
+        message.Role.USER, [message.Text(compaction.SUMMARY_INSTRUCTION)]
+    )
+    briefing = chat_agent.conversation.history[0].content[0].text
+    assert "BRIEFING" in briefing
+    assert briefing.endswith("again")
+
+
+def test_compacts_between_tool_passes_within_a_turn() -> None:
+    async def run(args: dict[str, object]) -> str:
+        return "ok"
+
+    work = tool.Tool("work", "Work.", {}, run)
+
+    class _ToolLoopModel:
+        context_window = 100
+
+        def __init__(self) -> None:
+            self.seen: list[list[message.Message]] = []
+            self._step = 0
+
+        async def stream(
+            self,
+            messages: Sequence[message.Message],
+            tools: Sequence[tool.Tool] = (),
+            system: str = "",
+        ) -> AsyncIterator[streaming.Event]:
+            self.seen.append(list(messages))
+            last = messages[-1].content[-1]
+            if isinstance(last, message.Text) and last.text == compaction.SUMMARY_INSTRUCTION:
+                yield streaming.MessageCompleted(text="BRIEFING", stop_reason="end_turn", input_tokens=0)
+                return
+            self._step += 1
+            if self._step == 1:  # first turn: a small, non-filling reply
+                yield streaming.MessageCompleted(text="ready", stop_reason="end_turn", input_tokens=10)
+            elif self._step == 2:  # second turn, pass one: a filling tool call
+                yield streaming.ToolUse(id="c1", name="test__work", input={})
+                yield streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=90)
+            else:  # second turn, pass two: the answer, after compaction
+                yield streaming.MessageCompleted(text="done", stop_reason="end_turn", input_tokens=10)
+
+    model = _ToolLoopModel()
+    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [work])])
+
+    async def gather() -> list[streaming.Event]:
+        return [event async for event in chat_agent.events(_stream(["setup", "work"]))]
+
+    events = asyncio.run(gather())
+
+    assert streaming.Compaction.ENDED in events
+    # The pass after compaction sees a summarized history: briefing, tool call, result.
+    after = model.seen[3]
+    assert after[0].content[0].text.startswith(compaction.SUMMARY_HEADING)
+    assert len(after) == 3
 
 
 def test_subagent_runs_and_returns_result() -> None:
@@ -592,13 +692,13 @@ def test_subagent_runs_and_returns_result() -> None:
         [
             [
                 streaming.ToolUse(id="c1", name="agent__spawn", input={"task": "do it"}),
-                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+                streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
             ],
             [
                 streaming.TextDelta("child answer"),
-                streaming.MessageCompleted(text="child answer", stop_reason="end_turn"),
+                streaming.MessageCompleted(text="child answer", stop_reason="end_turn", input_tokens=0),
             ],
-            [streaming.MessageCompleted(text="all done", stop_reason="end_turn")],
+            [streaming.MessageCompleted(text="all done", stop_reason="end_turn", input_tokens=0)],
         ]
     )
     chat_agent = agent.Agent(model)
@@ -622,9 +722,9 @@ def test_subagent_runs_on_the_configured_subagent_model() -> None:
         [
             [
                 streaming.ToolUse(id="c1", name="agent__spawn", input={"task": "do it"}),
-                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+                streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
             ],
-            [streaming.MessageCompleted(text="all done", stop_reason="end_turn")],
+            [streaming.MessageCompleted(text="all done", stop_reason="end_turn", input_tokens=0)],
         ]
     )
     subagent_model = _ScriptedModel(["child answer"])
@@ -646,13 +746,13 @@ def test_parent_logs_subagent_events_tagged_with_distinct_id() -> None:
         [
             [
                 streaming.ToolUse(id="c1", name="agent__spawn", input={"task": "do it"}),
-                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+                streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
             ],
             [
                 streaming.TextDelta("child answer"),
-                streaming.MessageCompleted(text="child answer", stop_reason="end_turn"),
+                streaming.MessageCompleted(text="child answer", stop_reason="end_turn", input_tokens=0),
             ],
-            [streaming.MessageCompleted(text="all done", stop_reason="end_turn")],
+            [streaming.MessageCompleted(text="all done", stop_reason="end_turn", input_tokens=0)],
         ]
     )
     recorder = _RecordingLogger()
@@ -674,13 +774,15 @@ def test_parent_logs_subagent_events_tagged_with_distinct_id() -> None:
     ) in recorder.entries
     assert (
         "sub-1",
-        streaming.MessageCompleted(text="child answer", stop_reason="end_turn"),
+        streaming.MessageCompleted(text="child answer", stop_reason="end_turn", input_tokens=0),
     ) in recorder.entries
     assert {agent_id for agent_id, _ in recorder.entries} == {"main", "sub-1"}
 
 
 class _ConcurrentModel:
     """A Model that spawns two subagents, then answers each by its task text."""
+
+    context_window = 0
 
     def __init__(self, replies: dict[str, str]) -> None:
         self._replies = replies
@@ -695,14 +797,14 @@ class _ConcurrentModel:
         if isinstance(block, message.Text) and block.text in self._replies:
             reply = self._replies[block.text]
             yield streaming.TextDelta(reply)
-            yield streaming.MessageCompleted(text=reply, stop_reason="end_turn")
+            yield streaming.MessageCompleted(text=reply, stop_reason="end_turn", input_tokens=0)
             return
         if any(isinstance(b, message.ToolResult) for m in messages for b in m.content):
-            yield streaming.MessageCompleted(text="all done", stop_reason="end_turn")
+            yield streaming.MessageCompleted(text="all done", stop_reason="end_turn", input_tokens=0)
             return
         yield streaming.ToolUse(id="a", name="agent__spawn", input={"task": "task-a"})
         yield streaming.ToolUse(id="b", name="agent__spawn", input={"task": "task-b"})
-        yield streaming.MessageCompleted(text="", stop_reason="tool_use")
+        yield streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0)
 
 
 def test_concurrent_subagents_are_distinguishable() -> None:
@@ -718,11 +820,11 @@ def test_concurrent_subagents_are_distinguishable() -> None:
 
     assert (
         "sub-1",
-        streaming.MessageCompleted(text="answer A", stop_reason="end_turn"),
+        streaming.MessageCompleted(text="answer A", stop_reason="end_turn", input_tokens=0),
     ) in recorder.entries
     assert (
         "sub-2",
-        streaming.MessageCompleted(text="answer B", stop_reason="end_turn"),
+        streaming.MessageCompleted(text="answer B", stop_reason="end_turn", input_tokens=0),
     ) in recorder.entries
 
 
@@ -746,16 +848,16 @@ def test_interrupt_propagates_to_running_subagent() -> None:
         [
             [
                 streaming.ToolUse(id="c1", name="agent__spawn", input={"task": "work"}),
-                streaming.MessageCompleted(text="", stop_reason="tool_use"),
+                streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
             ],
             [
                 streaming.TextDelta("part one"),
                 streaming.TextDelta("part two"),
-                streaming.MessageCompleted(text="part one part two", stop_reason="end_turn"),
+                streaming.MessageCompleted(text="part one part two", stop_reason="end_turn", input_tokens=0),
             ],
             [
                 streaming.TextDelta("resuming"),
-                streaming.MessageCompleted(text="resuming", stop_reason="end_turn"),
+                streaming.MessageCompleted(text="resuming", stop_reason="end_turn", input_tokens=0),
             ],
         ]
     )

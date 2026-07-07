@@ -24,6 +24,12 @@ A message that arrives while a reply is streaming is not held until the reply fi
 
 `interrupt()` — `Ctrl+C` in the CLI — asks the current reply to stop as soon as possible. What was generated so far is kept in the transcript, marked as interrupted, and an `Interrupted` event is emitted. The signal cascades to any running subagents.
 
+## Compaction
+
+Long sessions eventually approach the model's context window. When a completed pass exceeds a fraction of `context_window` (see `app/compaction.py`), the agent summarizes older turns into a compact briefing that replaces them, keeping the current turn and any in-flight tool exchange verbatim. The check runs after every completed pass, so a long tool-using turn can be compacted mid-flight. A `Compaction.STARTED`/`Compaction.ENDED` pair brackets the work.
+
+Compaction is enabled when the model reports a positive context window; a window of `0` disables it.
+
 ## Subagents
 
 The agent can delegate a scoped task to a subagent through the built-in `agent__spawn` tool. The subagent is a fresh agent that runs its own loop over a single message — the task — with the same extensions and tools but its own conversation. It works the task to completion and returns its final reply as the tool result, so from the parent's side delegation is just one tool call.

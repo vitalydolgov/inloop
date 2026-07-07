@@ -11,12 +11,14 @@ The agent's model is chosen in the [configuration](configuration.md) file. The `
 provider = "anthropic"
 model = "claude-sonnet-5"
 max_tokens = 64000
+context_window = 200000
 effort = "medium"
 
 [subagent.model]
 provider = "anthropic"
 model = "claude-haiku-4-5"
 max_tokens = 32000
+context_window = 200000
 ```
 
 ## Built-in providers
@@ -38,12 +40,15 @@ model = providers.anthropic.AnthropicModel(
     anthropic.AsyncAnthropic(),
     model="claude-sonnet-5",
     max_tokens=64_000,
+    context_window=200_000,
     effort="low",
     thinking_budget=32_000,
 )
 ```
 
 `effort` and `thinking_budget` are optional; pass `thinking_budget` to enable extended thinking with a token budget.
+
+`context_window` is required by every provider: it is the largest request the model will take, and the agent uses it to [compact](loop.md#compaction) the conversation before it overflows. Set it to the model's real limit — or lower, to compact sooner — and compaction stays on. Pass `0` to mark the model unbounded and turn compaction off.
 
 ### OpenAI and OpenAI-compatible
 
@@ -66,6 +71,7 @@ model = providers.openai.OpenAIModel(
     ),
     model="google/gemma-4-31B-it",
     max_tokens=64_000,
+    context_window=200_000,
 )
 ```
 
@@ -76,6 +82,7 @@ Or configure it directly using a preset:
 provider = "together"
 model = "google/gemma-4-31B-it"
 max_tokens = 64000
+context_window = 200000
 ```
 
 Below is the list of supported presets; extend as needed:
@@ -129,9 +136,11 @@ It is a concrete adapter, so it lives in `infra/providers/` (e.g. `infra/provide
 - `ThinkingPhase.STARTED` / `ThinkingDelta` / `ThinkingPhase.ENDED` — wrap reasoning output, if the backend exposes it.
 - `TextPhase.STARTED` / `TextDelta` / `TextPhase.ENDED` — wrap each chunk of visible answer text.
 - `ToolUse(id, name, input)` — one per requested tool call, with `input` decoded to a `dict` (accumulate streamed argument fragments first).
-- `MessageCompleted(text, stop_reason)` — emit exactly once, last, with the full concatenated text and the backend's stop reason.
+- `MessageCompleted(text, stop_reason, input_tokens)` — emit exactly once, last, with the full concatenated text, the backend's stop reason, and the request's token count. The agent reads `input_tokens` to decide when to compact, so report it; if the backend never does, `0` disables compaction for that model.
 
 The agent loop reads only these events, so any backend you can stream from will work.
+
+A provider also declares a `context_window` property — the largest request the model accepts, or `0` to opt out of compaction. Take it as a required constructor argument and return it from the property.
 
 **Wire it in.** Add a branch to `create_model` (`infra/providers/factory.py`) that recognizes your provider's name and builds it from a settings table, importing the backend SDK lazily inside the branch so it stays optional:
 
@@ -145,6 +154,7 @@ case "openai":
         client=openai.AsyncOpenAI(),
         model=settings["model"],
         max_tokens=settings["max_tokens"],
+        context_window=settings["context_window"],
     )
 ```
 
@@ -155,6 +165,7 @@ The agent can then run on it by naming it in the [configuration](configuration.m
 provider = "openai"
 model = "..."
 max_tokens = 64000
+context_window = 200000
 ```
 
 A `[subagent.model]` table runs spawned subagents on a different provider or settings than the parent — e.g. a lower effort setting for the cheaper, more scoped work a subagent does.

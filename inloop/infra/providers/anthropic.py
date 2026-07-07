@@ -38,12 +38,14 @@ class AnthropicModel:
         client: anthropic.AsyncAnthropic,
         model: str,
         max_tokens: int,
+        context_window: int,
         effort: str | None = None,
         thinking_budget: int | None = None,
     ) -> None:
         self._client = client
         self._model = model
         self._max_tokens = max_tokens
+        self._context_window = context_window
         self._effort = effort
         self._thinking_budget = thinking_budget
 
@@ -51,6 +53,11 @@ class AnthropicModel:
     def identifier(self) -> str:
         """The model's identifier."""
         return self._model
+
+    @property
+    def context_window(self) -> int:
+        """The most tokens the model accepts in one request, or 0 when unbounded."""
+        return self._context_window
 
     async def stream(
         self,
@@ -121,4 +128,5 @@ class AnthropicModel:
         yield streaming.MessageCompleted(
             text="".join(text_parts),
             stop_reason=final.stop_reason,
+            input_tokens=final.usage.input_tokens,
         )

@@ -83,15 +83,22 @@ class OpenAIModel:
         client: openai.AsyncOpenAI,
         model: str,
         max_tokens: int,
+        context_window: int,
     ) -> None:
         self._client = client
         self._model = model
         self._max_tokens = max_tokens
+        self._context_window = context_window
 
     @property
     def identifier(self) -> str:
         """The model's identifier."""
         return self._model
+
+    @property
+    def context_window(self) -> int:
+        """The most tokens the model accepts in one request, or 0 when unbounded."""
+        return self._context_window
 
     async def stream(
         self,
@@ -108,6 +115,7 @@ class OpenAIModel:
             "max_tokens": self._max_tokens,
             "messages": chat_messages,
             "stream": True,
+            "stream_options": {"include_usage": True},
         }
         if tools:
             kwargs["tools"] = _tool_specs(tools)
@@ -116,10 +124,13 @@ class OpenAIModel:
         tool_accum: dict[int, dict[str, str]] = {}
         text_parts: list[str] = []
         finish_reason: str | None = None
+        input_tokens = 0
         in_thinking = False
         in_text = False
 
         async for chunk in await self._client.chat.completions.create(**kwargs):
+            if chunk.usage:
+                input_tokens = chunk.usage.prompt_tokens
             choice = chunk.choices[0] if chunk.choices else None
             if choice is None:
                 continue
@@ -173,4 +184,5 @@ class OpenAIModel:
         yield streaming.MessageCompleted(
             text="".join(text_parts),
             stop_reason=finish_reason,
+            input_tokens=input_tokens,
         )

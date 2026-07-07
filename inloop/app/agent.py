@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import AsyncIterator, Sequence
 
+from inloop.app import compaction
 from inloop.app import environment
 from inloop.app.conversation import Conversation
 from inloop.app.inbox import Inbox
@@ -69,6 +70,12 @@ class Agent:
         self._children = []
         self._child_count = 0
         self._interrupted = False
+
+        if model.context_window > 0:
+            self._compactor = compaction.Compactor(model)
+        else:
+            self._compactor = None
+
         self.conversation = Conversation()
         """The conversation transcript owned by this agent."""
         self.conversation.add = logged(self._log)(self.conversation.add)
@@ -106,6 +113,15 @@ class Agent:
         if self._logger:
             await self._logger.log(entry, self._id)
 
+    async def _compact_if_needed(self, input_tokens):
+        if self._compactor is None or not self._compactor.is_full(input_tokens):
+            return
+        if not self._compactor.can_compact(self.conversation.history):
+            return
+        yield streaming.Compaction.STARTED
+        self.conversation.history = await self._compactor.compact(self.conversation.history)
+        yield streaming.Compaction.ENDED
+
     async def _spawn(self, args):
         self._child_count += 1
         child = Agent(
@@ -135,6 +151,7 @@ class Agent:
         calls = []
         texts = []
         partial = ""
+        input_tokens = 0
 
         tools = list(self._tools.values())
         stream = self._model.stream(
@@ -145,11 +162,12 @@ class Agent:
                 match event:
                     case streaming.TextDelta(text):
                         partial += text
-                    case streaming.ToolUse():
-                        call = message.ToolCall(event.id, event.name, event.input)
-                        calls.append(call)
-                    case streaming.MessageCompleted() if event.text:
-                        texts.append(message.Text(event.text))
+                    case streaming.ToolUse(id=id, name=name, input=input):
+                        calls.append(message.ToolCall(id, name, input))
+                    case streaming.MessageCompleted(text=text):
+                        if text:
+                            texts.append(message.Text(text))
+                        input_tokens = event.input_tokens
                 yield event
                 if self._interrupted:
                     await stream.aclose()
@@ -186,3 +204,7 @@ class Agent:
             await self.conversation.add(Message(Role.USER, results))
         else:
             stop["done"] = True
+
+        results_tokens = sum(len(result.content) for result in results) // 4  # roughly
+        async for event in self._compact_if_needed(input_tokens + results_tokens):
+            yield event

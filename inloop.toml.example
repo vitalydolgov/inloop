@@ -3,6 +3,7 @@ provider = "anthropic"
 model = "claude-sonnet-5"
 max_tokens = 64000
 effort = "medium"
+context_window = 200000  # 0 disables compaction
 
 [mcp.servers.duckduckgo]
 command = "uvx"

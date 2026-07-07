@@ -122,7 +122,7 @@ def test_logs_tool_use_and_message_completed(tmp_path: Path) -> None:
     _log(
         plain_logger,
         streaming.ToolUse(id="t1", name="test__add", input={"a": 2, "b": 2}),
-        streaming.MessageCompleted(text="4", stop_reason="end_turn"),
+        streaming.MessageCompleted(text="4", stop_reason="end_turn", input_tokens=0),
     )
 
     assert [payload for _, payload in _entries(tmp_path)] == [

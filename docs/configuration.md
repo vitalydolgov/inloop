@@ -16,6 +16,7 @@ The application reads its settings from a single TOML file, one table per concer
 provider = "anthropic"
 model = "claude-sonnet-5"
 max_tokens = 64000
+context_window = 200000
 effort = "medium"
 
 [mcp.servers.deepwiki]

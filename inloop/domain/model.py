@@ -16,6 +16,11 @@ class Model(Protocol):
         """The model's identifier, such as its provider slug."""
         ...
 
+    @property
+    def context_window(self) -> int:
+        """The most tokens the model accepts in one request, or 0 when unbounded."""
+        ...
+
     def stream(
         self,
         messages: Sequence[message.Message],

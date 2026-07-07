@@ -89,6 +89,16 @@ class Renderer:
                 self.console.print(Text(f"\u26ed {name} {json.dumps(tool_input)}", style="dim cyan"))
                 self.console.print()
 
+            case streaming.Compaction.STARTED:
+                self._end_live()
+                self.status = "\u25cb compacting\u2026"
+
+            case streaming.Compaction.ENDED:
+                self._end_live()
+                self.status = ""
+                self.console.print(Text("\u2723 compacted", style="dim cyan"))
+                self.console.print()
+
             case streaming.Interrupted():
                 self._end_live()
                 self.status = ""

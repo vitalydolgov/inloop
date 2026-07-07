@@ -4,7 +4,7 @@ Ports are `Protocol` interfaces declared in `domain` or `app`. `infra` provides 
 
 ### `Model` — `domain/model.py`
 
-A language model that answers a conversation as an async stream of events, and reports its own `identifier` (the provider slug it runs under). Adapters are `AnthropicModel` (`infra/providers/anthropic.py`) and `OpenAIModel` (`infra/providers/openai.py`) for any OpenAI-compatible backend, including Together AI and Fireworks AI. `MockModel` (`infra/providers/mock.py`) replays a recorded conversation and then echoes the user, useful for testing.
+A language model that answers a conversation as an async stream of events, reports its own `identifier` (the provider slug it runs under), and declares its `context_window` (the largest request it accepts, or `0` when unbounded) so the loop can [compact](loop.md#compaction) before overflowing it. The completed-message event carries the request's token usage, the gauge that drives compaction. Adapters are `AnthropicModel` (`infra/providers/anthropic.py`) and `OpenAIModel` (`infra/providers/openai.py`) for any OpenAI-compatible backend. `MockModel` (`infra/providers/mock.py`) replays a recorded conversation and then echoes the user, useful for testing.
 
 ### `ExtensionRegistry` — `app/extensions.py`
 

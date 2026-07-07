@@ -47,6 +47,14 @@ class MessageCompleted:
 
     text: str
     stop_reason: str | None
+    input_tokens: int
+
+
+class Compaction(Enum):
+    """A boundary marker for the context-compaction phase, where older turns are summarized."""
+
+    STARTED = "started"
+    ENDED = "ended"
 
 
 @dataclass(frozen=True)
@@ -68,6 +76,7 @@ Event = (
     | TextDelta
     | ToolUse
     | MessageCompleted
+    | Compaction
     | Interrupted
     | Failed
 )

@@ -17,6 +17,7 @@ def create_model(provider: str, settings: dict) -> model.Model:
                 client=anthropic.AsyncAnthropic(),
                 model=settings["model"],
                 max_tokens=settings["max_tokens"],
+                context_window=settings["context_window"],
                 effort=settings.get("effort"),
                 thinking_budget=settings.get("thinking_budget"),
             )
@@ -32,6 +33,7 @@ def create_model(provider: str, settings: dict) -> model.Model:
                 ),
                 model=settings["model"],
                 max_tokens=settings["max_tokens"],
+                context_window=settings["context_window"],
             )
         case "together":
             import openai
@@ -45,6 +47,7 @@ def create_model(provider: str, settings: dict) -> model.Model:
                 ),
                 model=settings["model"],
                 max_tokens=settings["max_tokens"],
+                context_window=settings["context_window"],
             )
         case "fireworks":
             import openai
@@ -58,5 +61,6 @@ def create_model(provider: str, settings: dict) -> model.Model:
                 ),
                 model=settings["model"],
                 max_tokens=settings["max_tokens"],
+                context_window=settings["context_window"],
             )
     raise ValueError(f"unknown model provider: {provider!r}")
