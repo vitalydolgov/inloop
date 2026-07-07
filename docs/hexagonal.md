@@ -22,6 +22,10 @@ A server hosting tools the agent can list and call, such as an MCP server. Imple
 
 Reads and writes files on the local system. The built-in tools in `app/builtin/` serve it: `read` returns file contents, `write` replaces a whole file, and `patch` reads then rewrites a file to swap one exact text span. The adapter is `LocalFileSystem` (`infra/local_filesystem.py`), which backs it with the disk.
 
+### `Search` — `app/search.py`
+
+Searches file contents across the local system, returning each matching line as a `Match` of path, line number, and text. The built-in `grep` tool (`app/builtin/grep.py`) serves it. The adapter is `LocalSearch` (`infra/local_search.py`), which walks the disk and matches lines by regular expression.
+
 ## Configuration
 
 ### `Config` — `app/config.py`
