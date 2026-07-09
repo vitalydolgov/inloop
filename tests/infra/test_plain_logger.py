@@ -85,7 +85,7 @@ def test_logs_a_tool_result(tmp_path: Path) -> None:
 
     _log(
         plain_logger,
-        message.Message(message.Role.USER, [message.ToolResult("t1", "4")]),
+        message.Message(message.Role.USER, [message.ToolSuccess("t1", "4")]),
     )
 
     [(_, payload)] = _entries(tmp_path)

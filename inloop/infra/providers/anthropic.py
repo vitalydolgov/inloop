@@ -19,7 +19,9 @@ def _content(blocks: Sequence[message.Block]) -> list[dict[str, object]]:
                 parts.append(
                     {"type": "tool_use", "id": id, "name": name, "input": input}
                 )
-            case message.ToolResult(tool_call_id, content):
+            case message.ToolSuccess(tool_call_id, content) | message.ToolFailure(
+                tool_call_id, content
+            ):
                 parts.append(
                     {
                         "type": "tool_result",

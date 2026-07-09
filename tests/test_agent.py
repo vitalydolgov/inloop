@@ -218,7 +218,7 @@ def test_runs_requested_tool_and_feeds_result_back() -> None:
             message.Role.ASSISTANT,
             [message.ToolCall("t1", "test__add", {"a": 2, "b": 2})],
         ),
-        message.Message(message.Role.USER, [message.ToolResult("t1", "4")]),
+        message.Message(message.Role.USER, [message.ToolSuccess("t1", "4")]),
     ]
 
 
@@ -265,8 +265,8 @@ def test_runs_every_tool_requested_in_one_turn() -> None:
         message.Message(
             message.Role.USER,
             [
-                message.ToolResult("c1", "first-done"),
-                message.ToolResult("c2", "second-done"),
+                message.ToolSuccess("c1", "first-done"),
+                message.ToolSuccess("c2", "second-done"),
             ],
         ),
     ]
@@ -365,7 +365,7 @@ def test_logs_user_input_model_output_and_tool_results() -> None:
                 [message.ToolCall("t1", "test__add", {"a": 2, "b": 2})],
             ),
         ),
-        ("main", message.Message(message.Role.USER, [message.ToolResult("t1", "4")])),
+        ("main", message.Message(message.Role.USER, [message.ToolSuccess("t1", "4")])),
         ("main", streaming.TextDelta("the sum is 4")),
         ("main", streaming.MessageCompleted(text="the sum is 4", stop_reason="end_turn", input_tokens=0)),
         (
@@ -447,7 +447,7 @@ def test_model_error_emits_a_failed_event() -> None:
     ]
 
 
-def test_tool_error_emits_a_failed_event() -> None:
+def test_tool_error_is_reported_as_result() -> None:
     async def explode(args: dict[str, object]) -> str:
         raise RuntimeError("tool broke")
 
@@ -458,6 +458,8 @@ def test_tool_error_emits_a_failed_event() -> None:
                 streaming.ToolUse(id="c1", name="test__bad", input={}),
                 streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
             ],
+            # second turn after receiving the error result
+            [streaming.MessageCompleted(text="I see the tool failed.", stop_reason="end_turn", input_tokens=0)],
         ]
     )
     chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [bad])])
@@ -467,7 +469,11 @@ def test_tool_error_emits_a_failed_event() -> None:
 
     events = asyncio.run(gather())
 
-    assert events[-1] == streaming.Failed("tool broke")
+    # Final message from model after seeing the tool error result
+    assert events[-1] == streaming.MessageCompleted(text="I see the tool failed.", stop_reason="end_turn", input_tokens=0)
+    # Tool error becomes a result the model can see
+    result_block = next(b for m in chat_agent.conversation.history for b in m.content if isinstance(b, message.ToolFailure))
+    assert result_block.content == "error: tool broke"
 
 
 def test_each_turn_includes_prior_turns() -> None:
@@ -525,7 +531,7 @@ def test_steering_message_injected_between_tool_turns() -> None:
         message.Message(
             message.Role.ASSISTANT, [message.ToolCall("c1", "test__work", {})]
         ),
-        message.Message(message.Role.USER, [message.ToolResult("c1", "done")]),
+        message.Message(message.Role.USER, [message.ToolSuccess("c1", "done")]),
         message.Message(message.Role.USER, [message.Text("actually, focus on X")]),
     ]
 
@@ -713,7 +719,7 @@ def test_subagent_runs_and_returns_result() -> None:
         message.Message(message.Role.USER, [message.Text("do it")]),
     ]
     assert model.seen[2][-1] == message.Message(
-        message.Role.USER, [message.ToolResult("c1", "child answer")]
+        message.Role.USER, [message.ToolSuccess("c1", "child answer")]
     )
 
 

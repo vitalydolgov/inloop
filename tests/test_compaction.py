@@ -66,7 +66,7 @@ def test_compact_keeps_the_current_turns_tool_exchange_verbatim() -> None:
     model = _SummaryModel("BRIEFING")
     compactor = compaction.Compactor(model)
     call = message.ToolCall("c1", "test__work", {})
-    result_block = message.ToolResult("c1", "done")
+    result_block = message.ToolSuccess("c1", "done")
     history = [
         Message(Role.USER, [message.Text("old")]),
         Message(Role.ASSISTANT, [message.Text("earlier")]),

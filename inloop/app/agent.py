@@ -186,15 +186,13 @@ class Agent:
 
         async def execute(call):
             tool = self._tools[call.name]
-            content = await tool.execute(call.input)
-            return message.ToolResult(call.id, content)
+            try:
+                content = await tool.execute(call.input)
+                return message.ToolSuccess(call.id, content)
+            except Exception as error:
+                return message.ToolFailure(call.id, f"error: {error}")
 
-        try:
-            results = await asyncio.gather(*(execute(call) for call in calls))
-        except Exception as error:
-            yield streaming.Failed(str(error))
-            stop["failed"] = True
-            return
+        results = await asyncio.gather(*(execute(call) for call in calls))
 
         assistant_blocks = [*texts, *calls]
         if assistant_blocks:

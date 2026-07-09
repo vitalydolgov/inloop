@@ -12,52 +12,58 @@ from inloop.domain import tool
 
 def _messages(msgs: Sequence[message.Message]) -> list[dict[str, object]]:
     """Render domain messages as OpenAI chat messages."""
-    result: list[dict[str, object]] = []
+    chat: list[dict[str, object]] = []
     for msg in msgs:
-        match msg.role:
-            case message.Role.USER:
-                texts: list[str] = []
-                for block in msg.content:
-                    match block:
-                        case message.ToolResult(tool_call_id, content):
-                            result.append(
-                                {
-                                    "role": "tool",
-                                    "tool_call_id": tool_call_id,
-                                    "content": content,
-                                }
-                            )
-                        case message.Text(text):
-                            texts.append(text)
+        if msg.role == message.Role.USER:
+            chat.extend(_user_turn(msg))
+        elif msg.role == message.Role.ASSISTANT:
+            chat.append(_assistant_turn(msg))
+    return chat
+
+
+def _user_turn(msg: message.Message) -> list[dict[str, object]]:
+    entries: list[dict[str, object]] = []
+    texts: list[str] = []
+    for block in msg.content:
+        match block:
+            case message.ToolSuccess(tool_call_id, content) | message.ToolFailure(
+                tool_call_id, content
+            ):
                 if texts:
-                    result.append({"role": "user", "content": "\n".join(texts)})
-            case message.Role.ASSISTANT:
-                calls: list[message.ToolCall] = []
-                text_parts: list[str] = []
-                for block in msg.content:
-                    match block:
-                        case message.Text(text):
-                            text_parts.append(text)
-                        case message.ToolCall() as call:
-                            calls.append(call)
-                entry: dict[str, object] = {
-                    "role": "assistant",
-                    "content": "\n".join(text_parts) or None,
-                }
-                if calls:
-                    entry["tool_calls"] = [
-                        {
-                            "id": c.id,
-                            "type": "function",
-                            "function": {
-                                "name": c.name,
-                                "arguments": json.dumps(c.input),
-                            },
-                        }
-                        for c in calls
-                    ]
-                result.append(entry)
-    return result
+                    entries.append({"role": "user", "content": "\n".join(texts)})
+                    texts = []
+                entries.append(
+                    {"role": "tool", "tool_call_id": tool_call_id, "content": content}
+                )
+            case message.Text(text):
+                texts.append(text)
+    if texts:
+        entries.append({"role": "user", "content": "\n".join(texts)})
+    return entries
+
+
+def _assistant_turn(msg: message.Message) -> dict[str, object]:
+    text_parts: list[str] = []
+    tool_calls: list[dict[str, object]] = []
+    for block in msg.content:
+        match block:
+            case message.Text(text):
+                text_parts.append(text)
+            case message.ToolCall(id, name, input):
+                tool_calls.append(
+                    {
+                        "id": id,
+                        "type": "function",
+                        "function": {"name": name, "arguments": json.dumps(input)},
+                    }
+                )
+    entry: dict[str, object] = {
+        "role": "assistant",
+        "content": "\n".join(text_parts) or None,
+    }
+    if tool_calls:
+        entry["tool_calls"] = tool_calls
+    return entry
 
 
 def _tool_specs(tools: Sequence[tool.Tool]) -> list[dict[str, object]]:

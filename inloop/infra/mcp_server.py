@@ -58,4 +58,6 @@ class McpToolServer:
         text = "\n".join(
             block.text for block in result.content if getattr(block, "type", None) == "text"
         )
-        return f"[tool error] {text}" if result.isError else text
+        if result.isError:
+            raise RuntimeError(text)
+        return text

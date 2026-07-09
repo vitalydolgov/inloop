@@ -2,9 +2,14 @@
 
 import asyncio
 
+from inloop.app import agent
 from inloop.app import tool_server
 from inloop.app import tool_server_config
+from inloop.domain import message
+from inloop.domain import streaming
 from inloop.domain.tool import ToolSpec
+
+from tests.test_agent import _TurnModel, _stream
 
 
 class _FakeServer:
@@ -28,7 +33,10 @@ class _FakeServer:
 
     async def call_tool(self, name: str, arguments: dict[str, object]) -> str:
         self.calls.append((name, arguments))
-        return self._results.get(name, "ok")
+        result = self._results.get(name, "ok")
+        if isinstance(result, Exception):
+            raise result
+        return result
 
 
 class _FakeSource:
@@ -104,3 +112,40 @@ def test_connected_closes_servers_when_the_body_raises() -> None:
         pass
 
     assert server.closed
+
+
+def test_mcp_error_result_is_returned_to_model() -> None:
+    specs = [ToolSpec("flaky", "A tool that can fail.", {})]
+    server = _FakeServer(specs, {"flaky": RuntimeError("try again in a second")})
+
+    ext = asyncio.run(tool_server.make_extension("testretry", server))
+    flaky = ext.tools_by_name()["testretry__flaky"]
+
+    model = _TurnModel(
+        [
+            [
+                streaming.ToolUse(id="c1", name="testretry__flaky", input={}),
+                streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
+            ],
+            [
+                streaming.MessageCompleted(text="I will retry later.", stop_reason="end_turn", input_tokens=0),
+            ],
+        ]
+    )
+
+    chat_agent = agent.Agent(model, extensions=[ext])
+
+    async def run():
+        return [event async for event in chat_agent.events(_stream(["use the flaky tool"]))]
+
+    events = asyncio.run(run())
+
+    assert not any(isinstance(e, streaming.Failed) for e in events)
+
+    failures = [
+        b for m in chat_agent.conversation.history
+        for b in m.content
+        if isinstance(b, message.ToolFailure)
+    ]
+    assert len(failures) == 1
+    assert "error: try again in a second" in failures[0].content

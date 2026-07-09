@@ -25,9 +25,15 @@ class PlainLogger:
                 return {"type": "text", "text": text}
             case message.ToolCall(id, name, input):
                 return {"type": "tool_call", "id": id, "name": name, "input": input}
-            case message.ToolResult(tool_call_id, content):
+            case message.ToolSuccess(tool_call_id, content):
                 return {
                     "type": "tool_result",
+                    "tool_call_id": tool_call_id,
+                    "content": content,
+                }
+            case message.ToolFailure(tool_call_id, content):
+                return {
+                    "type": "tool_error",
                     "tool_call_id": tool_call_id,
                     "content": content,
                 }

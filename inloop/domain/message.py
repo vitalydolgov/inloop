@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Protocol, runtime_checkable
 
 
 class Role(StrEnum):
@@ -27,9 +28,25 @@ class ToolCall:
     input: dict[str, object]
 
 
+@runtime_checkable
+class ToolResult(Protocol):
+    """Outcome of a tool the assistant requested."""
+
+    tool_call_id: str
+    content: str
+
+
 @dataclass(frozen=True)
-class ToolResult:
-    """The outcome of running a previously requested tool."""
+class ToolSuccess:
+    """A successful tool outcome."""
+
+    tool_call_id: str
+    content: str
+
+
+@dataclass(frozen=True)
+class ToolFailure:
+    """A failed tool outcome."""
 
     tool_call_id: str
     content: str
