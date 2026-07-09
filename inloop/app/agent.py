@@ -1,4 +1,4 @@
-"""Workflow that drives a chat loop over a stream of user messages."""
+"""Chat agent that owns a conversation and coordinates model turns and tool execution."""
 
 import asyncio
 from collections.abc import AsyncIterator, Sequence
@@ -37,8 +37,85 @@ SUBAGENT_PARAMETERS = {
 }
 
 
-async def _once(text):
-    yield text
+class _TurnExecutor:
+    """Coordinates one agent turn (model streaming, tool execution, and compaction)."""
+
+    def __init__(
+        self,
+        model: model.Model,
+        tools: dict[str, tool.Tool],
+        compactor: compaction.Compactor | None,
+    ):
+        self._model = model
+        self._tools = tools
+        self._compactor = compactor
+        self._stop: dict[str, bool] = {}
+
+    async def _execute(self, call):
+        tool = self._tools[call.name]
+        try:
+            content = await tool.execute(call.input)
+            return message.ToolSuccess(call.id, content)
+        except Exception as error:
+            return message.ToolFailure(call.id, f"error: {error}")
+
+    async def _compact_if_needed(self, input_tokens, conversation: Conversation):
+        if self._compactor is None or not self._compactor.is_full(input_tokens):
+            return
+        if not self._compactor.can_compact(conversation.history):
+            return
+        yield streaming.Compaction.STARTED
+        conversation.history = await self._compactor.compact(conversation.history)
+        yield streaming.Compaction.ENDED
+
+    async def events(self, conversation: Conversation, system_prompt: str):
+        self._stop = {}
+        stop = self._stop
+        calls = []
+        texts = []
+        partial = ""
+        input_tokens = 0
+
+        stream = self._model.stream(
+            conversation.history,
+            list(self._tools.values()),
+            system=system_prompt,
+        )
+        try:
+            async for event in stream:
+                match event:
+                    case streaming.TextDelta(text):
+                        partial += text
+                    case streaming.ToolUse(id=id, name=name, input=input):
+                        calls.append(message.ToolCall(id, name, input))
+                    case streaming.MessageCompleted(text=text):
+                        if text:
+                            texts.append(message.Text(text))
+                        input_tokens = event.input_tokens
+                yield event
+        except Exception as error:
+            yield streaming.Failed(str(error))
+            stop["failed"] = True
+            return
+
+        results = await asyncio.gather(*(self._execute(call) for call in calls))
+
+        assistant_blocks = [*texts, *calls]
+        if assistant_blocks:
+            await conversation.add(Message(Role.ASSISTANT, assistant_blocks))
+
+        if results:
+            await conversation.add(Message(Role.USER, results))
+        else:
+            stop["done"] = True
+
+        results_tokens = sum(len(r.content) for r in results) // 4  # roughly
+        async for event in self._compact_if_needed(input_tokens + results_tokens, conversation):
+            yield event
+
+    @property
+    def should_stop(self) -> bool:
+        return bool(self._stop)
 
 
 class Agent:
@@ -58,28 +135,25 @@ class Agent:
         self._subagent_model = subagent_model or model
         self._environment = environment
         self._extensions = list(extensions)
-        self._tools = {}
+        tools = {}
         for ext in extensions:
-            self._tools.update(ext.tools_by_name())
+            tools.update(ext.tools_by_name())
         if can_spawn:
-            self._tools[SUBAGENT_TOOL] = tool.Tool(
+            tools[SUBAGENT_TOOL] = tool.Tool(
                 SUBAGENT_TOOL, SUBAGENT_DESCRIPTION, SUBAGENT_PARAMETERS, self._spawn
             )
         self._logger = logger
         self._id = agent_id
         self._children = []
         self._child_count = 0
-        self._interrupted = False
 
-        if model.context_window > 0:
-            self._compactor = compaction.Compactor(model)
-        else:
-            self._compactor = None
+        compactor = compaction.Compactor(model) if model.context_window > 0 else None
+        self._turn_executor = _TurnExecutor(model=model, tools=tools, compactor=compactor)
+        self._turn_executor.events = logged_stream(self._log)(self._turn_executor.events)
 
         self.conversation = Conversation()
         """The conversation transcript owned by this agent."""
         self.conversation.add = logged(self._log)(self.conversation.add)
-        self._agent_turn = logged_stream(self._log)(self._agent_turn)
 
     async def events(
         self, messages: AsyncIterator[str]
@@ -88,21 +162,15 @@ class Agent:
         async with Inbox(messages) as inbox:
             async for text in inbox:
                 await self.conversation.add(Message(Role.USER, [message.Text(text)]))
-                self._interrupted = False
                 while True:
-                    stop = {}
-                    async for event in self._agent_turn(stop):
+                    async for event in self._turn_executor.events(
+                        self.conversation, self._system_prompt()
+                    ):
                         yield event
-                    if stop:
+                    if self._turn_executor.should_stop:
                         break
                     for steer in inbox.drain():
                         await self.conversation.add(Message(Role.USER, [message.Text(steer)]))
-
-    def interrupt(self):
-        """Ask the current reply to stop streaming as soon as possible, cascading to subagents."""
-        self._interrupted = True
-        for child in self._children:
-            child.interrupt()
 
     def _system_prompt(self):
         if self._environment is None:
@@ -112,15 +180,6 @@ class Agent:
     async def _log(self, entry):
         if self._logger:
             await self._logger.log(entry, self._id)
-
-    async def _compact_if_needed(self, input_tokens):
-        if self._compactor is None or not self._compactor.is_full(input_tokens):
-            return
-        if not self._compactor.can_compact(self.conversation.history):
-            return
-        yield streaming.Compaction.STARTED
-        self.conversation.history = await self._compactor.compact(self.conversation.history)
-        yield streaming.Compaction.ENDED
 
     async def _spawn(self, args):
         self._child_count += 1
@@ -135,6 +194,10 @@ class Agent:
         self._children.append(child)
         try:
             final = ""
+
+            async def _once(text):
+                yield text
+
             async for event in child.events(_once(args["task"])):
                 match event:
                     case streaming.MessageCompleted(text) if text:
@@ -146,63 +209,3 @@ class Agent:
             return final
         finally:
             self._children.remove(child)
-
-    async def _agent_turn(self, stop):
-        calls = []
-        texts = []
-        partial = ""
-        input_tokens = 0
-
-        tools = list(self._tools.values())
-        stream = self._model.stream(
-            self.conversation.history, tools, system=self._system_prompt()
-        )
-        try:
-            async for event in stream:
-                match event:
-                    case streaming.TextDelta(text):
-                        partial += text
-                    case streaming.ToolUse(id=id, name=name, input=input):
-                        calls.append(message.ToolCall(id, name, input))
-                    case streaming.MessageCompleted(text=text):
-                        if text:
-                            texts.append(message.Text(text))
-                        input_tokens = event.input_tokens
-                yield event
-                if self._interrupted:
-                    await stream.aclose()
-                    break
-        except Exception as error:
-            yield streaming.Failed(str(error))
-            stop["failed"] = True
-            return
-
-        if self._interrupted:
-            text = f"{partial}\n\n{INTERRUPTED_NOTICE}" if partial else INTERRUPTED_NOTICE
-            await self.conversation.add(Message(Role.ASSISTANT, [message.Text(text)]))
-            yield streaming.Interrupted()
-            stop["interrupted"] = True
-            return
-
-        async def execute(call):
-            tool = self._tools[call.name]
-            try:
-                content = await tool.execute(call.input)
-                return message.ToolSuccess(call.id, content)
-            except Exception as error:
-                return message.ToolFailure(call.id, f"error: {error}")
-
-        results = await asyncio.gather(*(execute(call) for call in calls))
-
-        assistant_blocks = [*texts, *calls]
-        if assistant_blocks:
-            await self.conversation.add(Message(Role.ASSISTANT, assistant_blocks))
-
-        if results:
-            await self.conversation.add(Message(Role.USER, results))
-        else:
-            stop["done"] = True
-
-        results_tokens = sum(len(result.content) for result in results) // 4  # roughly
-        async for event in self._compact_if_needed(input_tokens + results_tokens):
-            yield event

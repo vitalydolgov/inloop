@@ -375,64 +375,6 @@ def test_logs_user_input_model_output_and_tool_results() -> None:
     ]
 
 
-def _run_and_interrupt(turn: list[streaming.Event], after: int) -> tuple[list[streaming.Event], list[message.Message]]:
-    chat_agent = agent.Agent(_TurnModel([turn]))
-
-    async def gather() -> list[streaming.Event]:
-        seen: list[streaming.Event] = []
-        async for event in chat_agent.events(_stream(["question"])):
-            seen.append(event)
-            if len(seen) == after:
-                chat_agent.interrupt()
-        return seen
-
-    events = asyncio.run(gather())
-    return events, chat_agent.conversation.history
-
-
-def test_interrupt_stops_streaming_and_emits_an_event() -> None:
-    events, history = _run_and_interrupt(
-        [
-            streaming.TextDelta("par"),
-            streaming.TextDelta("tial"),
-            streaming.TextDelta("more"),
-            streaming.MessageCompleted(text="partial more", stop_reason="end_turn", input_tokens=0),
-        ],
-        after=2,
-    )
-
-    assert events == [
-        streaming.TextDelta("par"),
-        streaming.TextDelta("tial"),
-        streaming.Interrupted(),
-    ]
-    assert history == [
-        message.Message(message.Role.USER, [message.Text("question")]),
-        message.Message(
-            message.Role.ASSISTANT,
-            [message.Text(f"partial\n\n{agent.INTERRUPTED_NOTICE}")],
-        ),
-    ]
-
-
-def test_interrupt_before_any_text_records_only_the_notice() -> None:
-    events, history = _run_and_interrupt(
-        [
-            streaming.ThinkingPhase.STARTED,
-            streaming.TextDelta("unseen"),
-        ],
-        after=1,
-    )
-
-    assert events == [streaming.ThinkingPhase.STARTED, streaming.Interrupted()]
-    assert history == [
-        message.Message(message.Role.USER, [message.Text("question")]),
-        message.Message(
-            message.Role.ASSISTANT, [message.Text(agent.INTERRUPTED_NOTICE)]
-        ),
-    ]
-
-
 def test_model_error_emits_a_failed_event() -> None:
     chat_agent = agent.Agent(_RaisingModel())
 
@@ -834,48 +776,5 @@ def test_concurrent_subagents_are_distinguishable() -> None:
     ) in recorder.entries
 
 
-class _InterruptingLogger:
-    """A Logger that interrupts the agent when a subagent streams its first text."""
-
-    def __init__(self) -> None:
-        self.entries: list[tuple[str, logger.Entry]] = []
-        self.agent: agent.Agent | None = None
-        self._fired = False
-
-    async def log(self, entry: logger.Entry, agent_id: str = "main") -> None:
-        self.entries.append((agent_id, entry))
-        if not self._fired and agent_id == "sub-1" and isinstance(entry, streaming.TextDelta):
-            self._fired = True
-            self.agent.interrupt()
 
 
-def test_interrupt_propagates_to_running_subagent() -> None:
-    model = _TurnModel(
-        [
-            [
-                streaming.ToolUse(id="c1", name="agent__spawn", input={"task": "work"}),
-                streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
-            ],
-            [
-                streaming.TextDelta("part one"),
-                streaming.TextDelta("part two"),
-                streaming.MessageCompleted(text="part one part two", stop_reason="end_turn", input_tokens=0),
-            ],
-            [
-                streaming.TextDelta("resuming"),
-                streaming.MessageCompleted(text="resuming", stop_reason="end_turn", input_tokens=0),
-            ],
-        ]
-    )
-    recorder = _InterruptingLogger()
-    chat_agent = agent.Agent(model, logger=recorder)
-    recorder.agent = chat_agent
-
-    async def gather() -> list[streaming.Event]:
-        return [event async for event in chat_agent.events(_stream(["delegate"]))]
-
-    events = asyncio.run(gather())
-
-    assert ("sub-1", streaming.Interrupted()) in recorder.entries
-    assert ("sub-1", streaming.TextDelta("part two")) not in recorder.entries
-    assert events[-1] == streaming.Interrupted()

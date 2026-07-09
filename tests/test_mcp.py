@@ -119,7 +119,6 @@ def test_mcp_error_result_is_returned_to_model() -> None:
     server = _FakeServer(specs, {"flaky": RuntimeError("try again in a second")})
 
     ext = asyncio.run(tool_server.make_extension("testretry", server))
-    flaky = ext.tools_by_name()["testretry__flaky"]
 
     model = _TurnModel(
         [
