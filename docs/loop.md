@@ -24,7 +24,7 @@ A message that arrives while a response is streaming is not held until the respo
 
 ## Interrupt
 
-`interrupt()` — `Ctrl+C` in the CLI — asks the current response to stop as soon as possible. The interruption signal cascades to any running subagents.
+`interrupt()` — `Ctrl+C` in the CLI — asks the current response to stop as soon as possible. In-flight tool calls are cancelled at the next await; an `Interrupted` event is emitted without committing partial tool results. The signal cascades to any running subagents.
 
 ## Compaction
 

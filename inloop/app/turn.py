@@ -50,6 +50,18 @@ class Turn:
         except Exception as error:
             return message.ToolFailure(call.id, f"error: {error}")
 
+    async def _run_tools(self, calls):
+        if not calls:
+            return []
+        tasks = [asyncio.create_task(self._execute(call)) for call in calls]
+        try:
+            return list(await asyncio.gather(*tasks))
+        finally:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+
     async def _compact_if_needed(self, input_tokens, conversation: Conversation):
         if self._compactor is None or not self._compactor.is_full(input_tokens):
             return
@@ -77,7 +89,7 @@ class Turn:
                         input_tokens = event.input_tokens
                 yield event
 
-            results = await asyncio.gather(*(self._execute(call) for call in calls))
+            results = await self._run_tools(calls)
 
             assistant_blocks = [*texts, *calls]
             if assistant_blocks:

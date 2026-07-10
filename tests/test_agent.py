@@ -779,7 +779,23 @@ def test_concurrent_subagents_are_distinguishable() -> None:
 def _run_and_interrupt(
     turn: list[streaming.Event], after: int
 ) -> tuple[list[streaming.Event], list[message.Message]]:
-    chat_agent = agent.Agent(_TurnModel([turn]))
+    class _PausingModel:
+        """Yields scripted events, then waits so interrupt can land mid-stream."""
+
+        context_window = 0
+
+        async def stream(
+            self,
+            messages: Sequence[message.Message],
+            tools: Sequence[tool.Tool] = (),
+            system: str = "",
+        ) -> AsyncIterator[streaming.Event]:
+            for index, event in enumerate(turn):
+                yield event
+                if index + 1 == after:
+                    await asyncio.Event().wait()
+
+    chat_agent = agent.Agent(_PausingModel())
 
     async def gather() -> list[streaming.Event]:
         seen: list[streaming.Event] = []
@@ -811,14 +827,10 @@ def test_interrupt_stops_streaming_and_emits_an_event() -> None:
     ]
     assert history == [
         message.Message(message.Role.USER, [message.Text("question")]),
-        message.Message(
-            message.Role.ASSISTANT,
-            [message.Text(f"partial\n\n{agent.INTERRUPTED_NOTICE}")],
-        ),
     ]
 
 
-def test_interrupt_before_any_text_records_only_the_notice() -> None:
+def test_interrupt_before_any_text_emits_an_event() -> None:
     events, history = _run_and_interrupt(
         [
             streaming.ThinkingPhase.STARTED,
@@ -830,56 +842,107 @@ def test_interrupt_before_any_text_records_only_the_notice() -> None:
     assert events == [streaming.ThinkingPhase.STARTED, streaming.Interrupted()]
     assert history == [
         message.Message(message.Role.USER, [message.Text("question")]),
-        message.Message(
-            message.Role.ASSISTANT, [message.Text(agent.INTERRUPTED_NOTICE)]
-        ),
     ]
 
 
-class _InterruptingLogger:
-    """A Logger that interrupts the agent when a subagent streams its first text."""
+def test_interrupt_cancels_a_running_tool() -> None:
+    started = asyncio.Event()
+    tool_cancelled = asyncio.Event()
 
-    def __init__(self) -> None:
-        self.entries: list[tuple[str, logger.Entry]] = []
-        self.agent: agent.Agent | None = None
-        self._fired = False
+    async def hang(args: dict[str, object]) -> str:
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            tool_cancelled.set()
+            raise
+        return "unreachable"
 
-    async def log(self, entry: logger.Entry, agent_id: str = "main") -> None:
-        self.entries.append((agent_id, entry))
-        if not self._fired and agent_id == "sub-1" and isinstance(entry, streaming.TextDelta):
-            self._fired = True
-            self.agent.interrupt()
-
-
-def test_interrupt_propagates_to_running_subagent() -> None:
+    hang_tool = tool.Tool("hang", "Hang.", {}, hang)
     model = _TurnModel(
         [
             [
-                streaming.ToolUse(id="c1", name="agent__spawn", input={"task": "work"}),
+                streaming.ToolUse(id="c1", name="test__hang", input={}),
                 streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
             ],
-            [
-                streaming.TextDelta("part one"),
-                streaming.TextDelta("part two"),
-                streaming.MessageCompleted(text="part one part two", stop_reason="end_turn", input_tokens=0),
-            ],
-            [
-                streaming.TextDelta("resuming"),
-                streaming.MessageCompleted(text="resuming", stop_reason="end_turn", input_tokens=0),
-            ],
+            [streaming.MessageCompleted(text="should not run", stop_reason="end_turn", input_tokens=0)],
         ]
     )
-    recorder = _InterruptingLogger()
-    chat_agent = agent.Agent(model, logger=recorder)
-    recorder.agent = chat_agent
+    chat_agent = agent.Agent(
+        model, extensions=[extension.Extension("test", [hang_tool])]
+    )
+
+    async def run() -> list[streaming.Event]:
+        async def consume() -> list[streaming.Event]:
+            return [event async for event in chat_agent.events(_stream(["go"]))]
+
+        async def cancel_when_started() -> None:
+            await started.wait()
+            chat_agent.interrupt()
+
+        events, _ = await asyncio.gather(consume(), cancel_when_started())
+        return events
+
+    events = asyncio.run(run())
+
+    assert tool_cancelled.is_set()
+    assert events[-1] == streaming.Interrupted()
+    assert not any(
+        isinstance(block, message.ToolSuccess)
+        for msg in chat_agent.conversation.history
+        for block in msg.content
+    )
+
+
+def test_interrupt_propagates_to_running_subagent() -> None:
+    class _SpawnThenChildModel:
+        """Parent spawns a child; the child yields one delta then waits to be cancelled."""
+
+        context_window = 0
+
+        def __init__(self) -> None:
+            self.agent: agent.Agent | None = None
+            self.child_saw_part_two = False
+
+        async def stream(
+            self,
+            messages: Sequence[message.Message],
+            tools: Sequence[tool.Tool] = (),
+            system: str = "",
+        ) -> AsyncIterator[streaming.Event]:
+            last = messages[-1].content[0]
+            if isinstance(last, message.Text) and last.text == "work":
+                yield streaming.TextDelta("part one")
+                self.agent.interrupt()
+                try:
+                    await asyncio.Event().wait()
+                except asyncio.CancelledError:
+                    self.child_saw_part_two = False
+                    raise
+                self.child_saw_part_two = True
+                yield streaming.TextDelta("part two")
+                yield streaming.MessageCompleted(
+                    text="part one part two", stop_reason="end_turn", input_tokens=0
+                )
+                return
+            if any(isinstance(b, message.ToolResult) for m in messages for b in m.content):
+                yield streaming.MessageCompleted(
+                    text="resuming", stop_reason="end_turn", input_tokens=0
+                )
+                return
+            yield streaming.ToolUse(id="c1", name="agent__spawn", input={"task": "work"})
+            yield streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0)
+
+    model = _SpawnThenChildModel()
+    chat_agent = agent.Agent(model)
+    model.agent = chat_agent
 
     async def gather() -> list[streaming.Event]:
         return [event async for event in chat_agent.events(_stream(["delegate"]))]
 
     events = asyncio.run(gather())
 
-    assert ("sub-1", streaming.Interrupted()) in recorder.entries
-    assert ("sub-1", streaming.TextDelta("part two")) not in recorder.entries
+    assert not model.child_saw_part_two
     assert events[-1] == streaming.Interrupted()
 
 
