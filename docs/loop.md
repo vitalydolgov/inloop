@@ -2,15 +2,17 @@
 
 `Agent.events(messages)` in `app/agent.py` drives the loop. It takes an async stream of user messages and returns an async stream of `streaming.Event`s — the caller feeds input and renders output, nothing more.
 
-## Turns
+## Interaction and turns
 
-A turn is one pass over the model:
+An **interaction** (`app/interaction.py`) is the exchange between the user and the agent for a stream of messages. It owns the inbox (`app/inbox.py`), folds mid-run input in as [steering](#steering), and runs **turns** until the agent is idle after each user message.
 
-1. The model streams a reply against the current conversation.
+A **turn** (`app/turn.py`) is one pass over the model:
+
+1. The model streams against the current conversation.
 2. If it requests tools — including [spawning a subagent](#subagents) — they run concurrently and their results are appended to the conversation.
-3. The model is asked again with those results in context.
+3. If tools ran, the interaction starts another turn with those results in context.
 
-The turn keeps going until the model stops without calling a tool, with the whole transcript carried forward on every pass. A user message starts a turn only when the agent is idle; one that arrives while a turn is running is folded in as [steering](#steering).
+Turns continue until the model stops without calling a tool. A user message starts work only when the agent is idle; one that arrives while a response is running is folded in as steering.
 
 ## Events
 
@@ -18,11 +20,11 @@ The stream reports what the model is doing as it happens, defined in `domain/str
 
 ## Steering
 
-A message that arrives while a reply is streaming is not held until the reply finishes. It is injected as a user message between tool turns, so you can redirect the agent mid-task without waiting for it to come up for air. A message sent during a plain text reply — one with no tool calls — opens the next turn instead, since there is no tool boundary to inject at.
+A message that arrives while a response is streaming is not held until the response finishes. It is injected as a user message between turns, so you can redirect the agent mid-task without waiting for it to come up for air. A message sent during a plain text turn — one with no tool calls — opens the next response instead, since there is no tool boundary to inject at.
 
 ## Interrupt
 
-`interrupt()` — `Ctrl+C` in the CLI — asks the current reply to stop as soon as possible. What was generated so far is kept in the transcript, marked as interrupted, and an `Interrupted` event is emitted. The signal cascades to any running subagents.
+`interrupt()` — `Ctrl+C` in the CLI — asks the current response to stop as soon as possible. The interruption signal cascades to any running subagents.
 
 ## Compaction
 

@@ -5,11 +5,9 @@ from collections.abc import AsyncIterator, Sequence
 from inloop.app import compaction
 from inloop.app import environment
 from inloop.app.conversation import Conversation
-from inloop.app.inbox import Inbox
 from inloop.app import logger
-from inloop.app.logger import logged, logged_stream
+from inloop.app.interaction import Interaction
 from inloop.app.spawn import Spawner, TOOL_NAME as SPAWN_TOOL
-from inloop.app.turn import Turn, TurnResult
 from inloop.domain import message
 from inloop.domain.message import Message, Role
 from inloop.domain import model
@@ -19,7 +17,7 @@ from inloop.domain import tool
 
 
 class Agent:
-    """A chat agent that owns its conversation, runs tools, and streams replies."""
+    """A chat agent that owns its conversation, runs tools, and streams events."""
 
     def __init__(
         self,
@@ -37,6 +35,7 @@ class Agent:
         self._extensions = list(extensions)
         self._logger = logger
         self._id = agent_id
+        self._interaction: Interaction | None = None
 
         tools: dict[str, tool.Tool] = {}
         for ext in extensions:
@@ -46,30 +45,31 @@ class Agent:
             tools[SPAWN_TOOL] = self._spawner.tool()
         self._tools = tools
 
-        compactor = compaction.Compactor(model) if model.context_window > 0 else None
-        self._turn = Turn(tools=tools, compactor=compactor, make_stream=self._make_stream)
-        self._turn.events = logged_stream(self._log)(self._turn.events)
-
         self.conversation = Conversation()
         """The conversation transcript owned by this agent."""
-        self.conversation.add = logged(self._log)(self.conversation.add)
+
+    def interrupt(self):
+        """Ask the current response to stop as soon as possible, cascading to subagents."""
+        if self._spawner:
+            for child in list(self._spawner.children):
+                child.interrupt()
+        if self._interaction is not None:
+            self._interaction.interrupt()
 
     async def events(
         self, messages: AsyncIterator[str]
     ) -> AsyncIterator[streaming.Event]:
-        """Ask the model for each message, injecting any typed mid-run as steering."""
-        async with Inbox(messages) as inbox:
-            async for text in inbox:
-                await self.conversation.add(Message(Role.USER, [message.Text(text)]))
-                while True:
-                    async for event in self._turn.events(self.conversation):
-                        yield event
-                    if self._turn.result is not TurnResult.CONTINUE:
-                        break
-                    for steer in inbox.drain():
-                        await self.conversation.add(Message(Role.USER, [message.Text(steer)]))
+        """Run an interaction over the given messages and yield agent events."""
+        async with Interaction(
+            messages,
+            tools=self._tools,
+            compactor=compaction.Compactor(self._model) if self._model.context_window > 0 else None,
+            make_stream=self._make_model_stream,
+        ) as self._interaction:
+            async for event in self._interaction(self.conversation):
+                yield event
 
-    def _make_stream(self):
+    def _make_model_stream(self):
         system = self._environment.describe() if self._environment else ""
         return self._model.stream(
             self.conversation.history,
@@ -86,7 +86,3 @@ class Agent:
             agent_id=agent_id,
             can_spawn=False,
         )
-
-    async def _log(self, entry):
-        if self._logger:
-            await self._logger.log(entry, self._id)

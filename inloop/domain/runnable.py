@@ -12,3 +12,7 @@ class Runnable(Protocol):
     def events(self, messages: AsyncIterator[str]) -> AsyncIterator[streaming.Event]:
         """Run against the given messages and yield events."""
         ...
+
+    def interrupt(self):
+        """Ask the current response to stop as soon as possible."""
+        ...

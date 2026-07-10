@@ -20,6 +20,7 @@ class TurnResult(Enum):
     CONTINUE = "continue"
     DONE = "done"
     FAILED = "failed"
+    INTERRUPTED = "interrupted"
 
 
 class Turn:
@@ -59,17 +60,15 @@ class Turn:
         yield streaming.Compaction.ENDED
 
     async def events(self, conversation: Conversation):
-        self._result = TurnResult.DONE
+        """Stream one model/tool pass: model, tools, and compaction."""
+        self._result = TurnResult.INTERRUPTED
         calls = []
         texts = []
-        partial = ""
         input_tokens = 0
 
         try:
             async for event in self._make_stream():
                 match event:
-                    case streaming.TextDelta(text):
-                        partial += text
                     case streaming.ToolUse(id=id, name=name, input=input):
                         calls.append(message.ToolCall(id, name, input))
                     case streaming.MessageCompleted(text=text):
@@ -77,23 +76,20 @@ class Turn:
                             texts.append(message.Text(text))
                         input_tokens = event.input_tokens
                 yield event
+
+            results = await asyncio.gather(*(self._execute(call) for call in calls))
+
+            assistant_blocks = [*texts, *calls]
+            if assistant_blocks:
+                conversation.add(Message(Role.ASSISTANT, assistant_blocks))
+
+            if results:
+                conversation.add(Message(Role.USER, results))
+
+            results_tokens = sum(len(r.content) for r in results) // 4  # roughly
+            async for event in self._compact_if_needed(input_tokens + results_tokens, conversation):
+                yield event
+            self._result = TurnResult.CONTINUE if results else TurnResult.DONE
         except Exception as error:
             yield streaming.Failed(str(error))
             self._result = TurnResult.FAILED
-            return
-
-        results = await asyncio.gather(*(self._execute(call) for call in calls))
-
-        assistant_blocks = [*texts, *calls]
-        if assistant_blocks:
-            await conversation.add(Message(Role.ASSISTANT, assistant_blocks))
-
-        if results:
-            await conversation.add(Message(Role.USER, results))
-            self._result = TurnResult.CONTINUE
-        else:
-            self._result = TurnResult.DONE
-
-        results_tokens = sum(len(r.content) for r in results) // 4  # roughly
-        async for event in self._compact_if_needed(input_tokens + results_tokens, conversation):
-            yield event
