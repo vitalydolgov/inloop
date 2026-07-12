@@ -52,45 +52,23 @@ model = providers.anthropic.AnthropicModel(
 
 ### OpenAI and OpenAI-compatible
 
-Use this provider for any backend that exposes the OpenAI Chat Completions API. The `openai` SDK is a core dependency, so no extra is needed. The factory also recognizes `together` and `fireworks` as presets with their default base URLs.
+Use this provider for any backend that exposes the OpenAI Chat Completions API. The `openai` SDK is a core dependency, so no extra is needed.
 
-The example below uses Together AI; the same pattern works for any OpenAI-compatible endpoint by setting the appropriate `base_url` and API key.
-
-```sh
-export TOGETHER_API_KEY="..."
-```
-
-```python
-import openai
-from inloop.infra import providers
-
-model = providers.openai.OpenAIModel(
-    openai.AsyncOpenAI(
-        base_url="https://api.together.xyz/v1",
-        api_key="...",
-    ),
-    model="google/gemma-4-31B-it",
-    max_tokens=64_000,
-    context_window=200_000,
-)
-```
-
-Or configure it directly using a preset:
+Configure it with `provider = "openai"` and supply a `base_url` for the target endpoint:
 
 ```toml
 [agent.model]
-provider = "together"
+provider = "openai"
 model = "google/gemma-4-31B-it"
 max_tokens = 64000
 context_window = 200000
+base_url = "https://api.together.xyz/v1"
+env_key = "TOGETHER_API_KEY"
 ```
 
-Below is the list of supported presets; extend as needed:
+The `env_key` setting names an environment variable that holds the API key. When omitted, the OpenAI client falls back to `OPENAI_API_KEY`.
 
-- `provider = "together"` with `TOGETHER_API_KEY`
-- `provider = "fireworks"` with `FIREWORKS_API_KEY`
-- `provider = "openai"` with `OPENAI_API_KEY`
-- Any other compatible provider can be configured by setting `provider = "openai"` and its `base_url`
+You can also pass the key value directly with `api_key`, though `env_key` is preferred for configuration files.
 
 ### Mock
 

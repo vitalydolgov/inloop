@@ -26,38 +26,16 @@ def create_model(provider: str, settings: dict) -> model.Model:
 
             from inloop.infra.providers import openai as adapter
 
+            api_key = settings.get("api_key")
+            if api_key is None:
+                env_name = settings.get("env_key")
+                if env_name:
+                    api_key = os.getenv(env_name)
+
             return adapter.OpenAIModel(
                 client=openai.AsyncOpenAI(
-                    api_key=settings.get("api_key"),
+                    api_key=api_key,
                     base_url=settings.get("base_url"),
-                ),
-                model=settings["model"],
-                max_tokens=settings["max_tokens"],
-                context_window=settings["context_window"],
-            )
-        case "together":
-            import openai
-
-            from inloop.infra.providers import openai as adapter
-
-            return adapter.OpenAIModel(
-                client=openai.AsyncOpenAI(
-                    api_key=settings.get("api_key") or os.getenv("TOGETHER_API_KEY"),
-                    base_url=settings.get("base_url", "https://api.together.xyz/v1"),
-                ),
-                model=settings["model"],
-                max_tokens=settings["max_tokens"],
-                context_window=settings["context_window"],
-            )
-        case "fireworks":
-            import openai
-
-            from inloop.infra.providers import openai as adapter
-
-            return adapter.OpenAIModel(
-                client=openai.AsyncOpenAI(
-                    api_key=settings.get("api_key") or os.getenv("FIREWORKS_API_KEY"),
-                    base_url=settings.get("base_url", "https://api.fireworks.ai/inference/v1"),
                 ),
                 model=settings["model"],
                 max_tokens=settings["max_tokens"],
