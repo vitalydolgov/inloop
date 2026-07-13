@@ -8,11 +8,13 @@ import os
 import aiohttp
 from aiohttp import web
 
+from inloop.app.builtin import filesystem
 from inloop.app.agent import Agent
 from inloop.app.server_tools import ServerTools
 from inloop.infra import app_dirs
 from inloop.infra import toml_config
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
+from inloop.infra.local_filesystem import LocalFileSystem
 from inloop.demo.telegram.client import TelegramClient
 from inloop.demo.telegram.server import create_app
 
@@ -33,11 +35,25 @@ async def amain():
     config = toml_config.TomlConfig(app_dirs.config_path())
     async with ServerTools(config.mcp) as mcp_tools:
         registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
+        local_filesystem = LocalFileSystem()
         agent = Agent(
             config.agent.model(),
             subagent_model=config.subagent.model(),
             extensions=registry.load(),
             server_tools=mcp_tools,
+            tools=[
+                filesystem.list.list_tool(local_filesystem),
+                filesystem.read.read_tool(local_filesystem),
+                filesystem.write.write_tool(local_filesystem),
+                filesystem.append.append_tool(local_filesystem),
+                filesystem.edit.edit_tool(local_filesystem),
+                filesystem.mkdir.mkdir_tool(local_filesystem),
+                filesystem.move.move_tool(local_filesystem),
+                filesystem.delete.delete_tool(local_filesystem),
+                filesystem.copy.copy_tool(local_filesystem),
+                filesystem.search.search_tool(local_filesystem),
+                filesystem.find.find_tool(local_filesystem),
+            ],
         )
 
         telegram_config = config.telegram

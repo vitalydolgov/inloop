@@ -20,7 +20,7 @@ The stream reports what the model is doing as it happens, defined in `domain/str
 
 ## Built-in tools
 
-Beyond extensions and [MCP servers](mcp.md), the agent may offer tools of its own through the turn source's extra-tool list (`app/spawn.py`, `app/reload.py`):
+Beyond extensions and [MCP servers](mcp.md), the agent may offer tools of its own through the turn source's extra-tool list. See [Built-in tools](builtin-tools.md) for the filesystem tools.
 
 - `agent__spawn` — [delegate to a subagent](#subagents).
 - `agent__reload` — reconnect the configured tool servers. Offered only when server tools are wired in. See [Reloading](mcp.md#reloading).

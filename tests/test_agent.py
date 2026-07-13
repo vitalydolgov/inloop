@@ -149,6 +149,28 @@ def test_offers_its_tools_to_the_model() -> None:
     assert model.offered_tools == [[namespaced]]
 
 
+def test_offers_explicit_tools_to_the_model() -> None:
+    async def run(args: dict[str, object]) -> str:
+        return "ok"
+
+    builtin = tool.Tool(
+        name="list",
+        description="List a directory.",
+        parameters={"type": "object", "properties": {}},
+        execute=run,
+    )
+    model = _ScriptedModel(["sure"])
+    chat_agent = agent.Agent(model, tools=[builtin], _spawn=False)
+
+    async def gather() -> None:
+        async for _ in chat_agent.events(_stream(["hi"])):
+            pass
+
+    asyncio.run(gather())
+
+    assert model.offered_tools == [[builtin]]
+
+
 def test_runs_requested_tool_and_feeds_result_back() -> None:
     ran: list[dict[str, object]] = []
 
@@ -778,5 +800,3 @@ def test_interrupt_propagates_to_running_subagent() -> None:
 
     assert not model.child_saw_part_two
     assert events[-1] == streaming.Interrupted()
-
-

@@ -18,6 +18,7 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.styles import Style
 
+from inloop.app.builtin import filesystem
 from inloop.app.agent import Agent
 from inloop.app.server_tools import ServerTools
 from inloop.domain import streaming
@@ -26,6 +27,7 @@ from inloop.infra import app_dirs
 from inloop.infra import providers
 from inloop.infra import toml_config
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
+from inloop.infra.local_filesystem import LocalFileSystem
 from inloop.infra.system_clock import SystemClock
 from inloop.infra.system_environment import SystemEnvironment
 
@@ -229,12 +231,26 @@ async def amain():
 
     async with ServerTools(config.mcp) as mcp_tools:
         registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
+        local_filesystem = LocalFileSystem()
         agent = Agent(
             model,
             subagent_model=subagent_model,
             extensions=registry.load(),
             server_tools=mcp_tools,
             system_prompt=SystemEnvironment(SystemClock()).describe(),
+            tools=[
+                filesystem.list.list_tool(local_filesystem),
+                filesystem.read.read_tool(local_filesystem),
+                filesystem.write.write_tool(local_filesystem),
+                filesystem.append.append_tool(local_filesystem),
+                filesystem.edit.edit_tool(local_filesystem),
+                filesystem.mkdir.mkdir_tool(local_filesystem),
+                filesystem.move.move_tool(local_filesystem),
+                filesystem.delete.delete_tool(local_filesystem),
+                filesystem.copy.copy_tool(local_filesystem),
+                filesystem.search.search_tool(local_filesystem),
+                filesystem.find.find_tool(local_filesystem),
+            ],
         )
         await chat(agent, model.identifier, no_banner=args.no_banner)
 

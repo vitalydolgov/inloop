@@ -22,6 +22,10 @@ Reports the current calendar date. The adapter is `SystemClock` (`infra/system_c
 
 A server hosting tools the agent can list and call, such as an MCP server. Implementations provide `connect`/`aclose` lifecycle hooks so the app can manage their transport. The adapter is `McpToolServer` (`infra/mcp_server.py`), which speaks the Model Context Protocol over stdio or HTTP.
 
+### `FileSystem` — `app/filesystem.py`
+
+Lists directories and reads, writes, and manages files on the local system. The built-in filesystem tools `read`, `search`, `write`, `append`, `edit`, `list`, `find`, `mkdir`, `move`, `copy`, and `delete` (`app/builtin/filesystem/`) serve it. The adapter is `LocalFileSystem` (`infra/local_filesystem.py`), which accesses the local disk.
+
 ## Configuration
 
 ### `Config` — `app/config.py`

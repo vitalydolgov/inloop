@@ -168,6 +168,7 @@ inloop
 ## Documentation
 
 - [The agent loop](docs/loop.md) — turns, streaming events, steering, interrupts, and subagents
+- [Built-in tools](docs/builtin-tools.md) — local filesystem operations available to the agent
 - [Extensions](docs/extensions.md) — how to create and install extensions
 - [MCP servers](docs/mcp.md) — how to connect to a local or remote MCP server
 - [Providers](docs/providers.md) — supported LLM backends, how to configure them, and how to write your own
