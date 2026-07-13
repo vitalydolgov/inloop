@@ -4,7 +4,6 @@ from collections.abc import AsyncIterator
 
 from inloop.app import command
 from inloop.app import compaction
-from inloop.app import environment
 from inloop.app.conversation import Conversation
 from inloop.app.interaction import Interaction
 from inloop.app.server_tools import ServerTools
@@ -21,41 +20,45 @@ class Agent:
     def __init__(
         self,
         model: model.Model,
+        *,
         subagent_model: model.Model | None = None,
-        extensions: list[extension.Extension] = [],
+        extensions: list[extension.Extension] | None = None,
         server_tools: ServerTools | None = None,
-        commands: list[command.Command] = [],
-        environment: environment.Environment | None = None,
-        can_spawn: bool = True,
+        commands: list[command.Command] | None = None,
+        system_prompt: str = "",
+        _spawn: bool = True,
     ):
         self._model = model
-        self._commands = commands
-        self._system_prompt = environment.describe() if environment else ""
+        self._extensions = list(extensions or [])
+        self._server_tools = server_tools
+        self._commands = list(commands or [])
+        self._system_prompt = system_prompt
         self._interaction: Interaction | None = None
         self._spawner: Spawner | None = None
 
         self.conversation = Conversation()
         """The conversation transcript owned by this agent."""
 
-        if can_spawn:
-            child_model = subagent_model or model
-
-            def make_child():
-                return Agent(
-                    child_model,
-                    extensions=extensions,
-                    server_tools=server_tools,
-                    environment=environment,
-                    can_spawn=False,
-                )
-
-            self._spawner = Spawner(make_child)
+        extra_tools = []
+        if _spawn:
+            subagent_model = subagent_model or model
+            self._spawner = Spawner(lambda: self._make_child(subagent_model))
+            extra_tools = [self._spawner.tool()]
 
         self._source = TurnSource(
             model,
-            extensions=extensions,
-            server_tools=server_tools,
-            spawner=self._spawner,
+            extensions=self._extensions,
+            server_tools=self._server_tools,
+            extra_tools=extra_tools,
+        )
+
+    def _make_child(self, model):
+        return Agent(
+            model,
+            extensions=self._extensions,
+            server_tools=self._server_tools,
+            system_prompt=self._system_prompt,
+            _spawn=False,
         )
 
     @property

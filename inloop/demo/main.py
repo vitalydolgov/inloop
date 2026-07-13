@@ -237,14 +237,14 @@ async def amain():
     async with ServerTools(config.mcp) as mcp_tools:
         registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
         agent = Agent(
-            model=model,
+            model,
             subagent_model=subagent_model,
             extensions=registry.load(),
             server_tools=mcp_tools,
             commands=[
                 Command("reload", "reconnect the configured tool servers", mcp_tools.reload),
             ],
-            environment=SystemEnvironment(SystemClock()),
+            system_prompt=SystemEnvironment(SystemClock()).describe(),
         )
         await chat(agent, model.identifier, no_banner=args.no_banner)
 

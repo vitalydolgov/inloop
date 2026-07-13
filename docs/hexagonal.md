@@ -12,7 +12,7 @@ Installs, removes, lists, and loads extensions. The adapter is `DirectoryExtensi
 
 ### `Environment` — `app/environment.py`
 
-Describes the ambient facts the agent puts in front of the model as a system prompt, so it doesn't guess them — starting with today's date, which the model would otherwise infer from stale training data. The adapter is `SystemEnvironment` (`infra/system_environment.py`), which assembles the description from the host, currently composing a `Clock` for the date. Further facts are added by extending the adapter, leaving the agent untouched.
+Describes the ambient facts put in front of the model as a system prompt, so it doesn't guess them — starting with today's date, which the model would otherwise infer from stale training data. The adapter is `SystemEnvironment` (`infra/system_environment.py`), which assembles the description from the host, currently composing a `Clock` for the date. The composition root turns that description into the agent's `system_prompt` string; further facts are added by extending the adapter, leaving the agent untouched.
 
 ### `Clock` — `app/clock.py`
 

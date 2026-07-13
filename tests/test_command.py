@@ -29,7 +29,7 @@ def test_reload_swaps_the_tools_offered_to_the_model() -> None:
                 model,
                 server_tools=hosted,
                 commands=[Command("reload", "reconnect the tool servers", hosted.reload)],
-                can_spawn=False,
+                _spawn=False,
             )
             source.servers = {"painter": _FakeServer([ToolSpec("draw", "Draw.", {})])}
             return [e async for e in chat_agent.events(_stream(["/reload", "draw a cat"]))]

@@ -71,16 +71,6 @@ class _TurnModel:
             yield event
 
 
-class _FixedEnvironment:
-    """An Environment that reports a fixed description."""
-
-    def __init__(self, description: str) -> None:
-        self._description = description
-
-    def describe(self) -> str:
-        return self._description
-
-
 async def _stream(items: list[str]) -> AsyncIterator[str]:
     for item in items:
         yield item
@@ -106,11 +96,9 @@ def test_run_streams_events_for_each_message() -> None:
     ]
 
 
-def test_puts_the_environment_in_the_system_prompt() -> None:
+def test_puts_system_prompt_on_the_model() -> None:
     model = _ScriptedModel(["ok"])
-    chat_agent = agent.Agent(
-        model, environment=_FixedEnvironment("Today's date is 2026-07-06.")
-    )
+    chat_agent = agent.Agent(model, system_prompt="Today's date is 2026-07-06.")
 
     async def gather() -> None:
         async for _ in chat_agent.events(_stream(["hi"])):
@@ -121,7 +109,7 @@ def test_puts_the_environment_in_the_system_prompt() -> None:
     assert model.systems == ["Today's date is 2026-07-06."]
 
 
-def test_without_an_environment_sends_no_system_prompt() -> None:
+def test_without_system_prompt_sends_empty() -> None:
     model = _ScriptedModel(["ok"])
     chat_agent = agent.Agent(model)
 
@@ -148,7 +136,7 @@ def test_offers_its_tools_to_the_model() -> None:
     chat_agent = agent.Agent(
         model,
         extensions=[extension.Extension("test", [weather])],
-        can_spawn=False,
+        _spawn=False,
     )
 
     async def gather() -> None:

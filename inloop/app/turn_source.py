@@ -4,7 +4,6 @@ from collections.abc import AsyncIterator
 
 from inloop.app.conversation import Conversation
 from inloop.app.server_tools import ServerTools
-from inloop.app.spawn import Spawner, TOOL_NAME as SPAWN_TOOL
 from inloop.domain import extension
 from inloop.domain import model
 from inloop.domain import streaming
@@ -17,14 +16,15 @@ class TurnSource:
     def __init__(
         self,
         model: model.Model,
-        extensions: list[extension.Extension] = [],
+        *,
+        extensions: list[extension.Extension] | None = None,
         server_tools: ServerTools | None = None,
-        spawner: Spawner | None = None,
+        extra_tools: list[tool.Tool] | None = None,
     ):
         self._model = model
-        self._extensions = extensions
+        self._extensions = list(extensions or [])
         self._server_tools = server_tools
-        self._spawner = spawner
+        self._extra_tools = list(extra_tools or [])
 
     def tools(self) -> dict[str, tool.Tool]:
         """Return the tools available right now, keyed by name."""
@@ -34,8 +34,8 @@ class TurnSource:
         if self._server_tools:
             for t in self._server_tools.tools():
                 tools[t.name] = t
-        if self._spawner:
-            tools[SPAWN_TOOL] = self._spawner.tool()
+        for t in self._extra_tools:
+            tools[t.name] = t
         return tools
 
     def stream(

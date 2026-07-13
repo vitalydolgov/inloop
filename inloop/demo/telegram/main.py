@@ -35,7 +35,7 @@ async def amain():
     async with ServerTools(config.mcp) as mcp_tools:
         registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
         agent = Agent(
-            model=config.agent.model(),
+            config.agent.model(),
             subagent_model=config.subagent.model(),
             extensions=registry.load(),
             server_tools=mcp_tools,
