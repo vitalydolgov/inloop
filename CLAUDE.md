@@ -40,6 +40,7 @@ Dependency rules:
 ## Testing
 
 - Write tests only for `domain` and `app`, do not test `infra` unless explicitly requested.
+- When running the interactive executable (`uv run inloop`), pass `--no-banner`.
 
 ## Communication style
 

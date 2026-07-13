@@ -1,5 +1,6 @@
 """Run an interactive chat, rendering each reply as the app layer streams it."""
 
+import argparse
 import asyncio
 import json
 import os
@@ -191,13 +192,14 @@ async def _piped_input():
             yield text
 
 
-async def chat(agent, model_identifier):
+async def chat(agent, model_identifier, no_banner=False):
     """Drive the interactive chat, keeping the input pinned to the bottom."""
     renderer = Renderer()
     interactive = sys.stdin.isatty()
 
     if interactive:
-        renderer.render_banner(model_identifier)
+        if not no_banner:
+            renderer.render_banner(model_identifier)
         prompt = Prompt(
             status=lambda: renderer.status,
             on_submit=renderer.echo_input,
@@ -219,6 +221,12 @@ async def chat(agent, model_identifier):
 
 
 async def amain():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--no-banner", action="store_true", help="suppress the startup banner"
+    )
+    args = parser.parse_args()
+
     config = toml_config.TomlConfig(app_dirs.config_path())
     if mock := os.environ.get("MOCK"):
         model = providers.mock.MockModel(Path(mock), delay=0.01)
@@ -240,7 +248,7 @@ async def amain():
             logger=PlainLogger(app_dirs.log_dir()),
             environment=SystemEnvironment(SystemClock()),
         )
-        await chat(agent, model.identifier)
+        await chat(agent, model.identifier, no_banner=args.no_banner)
 
 
 def main():
