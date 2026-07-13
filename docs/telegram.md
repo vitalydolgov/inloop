@@ -1,6 +1,6 @@
 # Telegram
 
-Exposes the agent as a Telegram bot, implemented under `demo/telegram/`. It talks to Telegram over a webhook rather than polling: Telegram pushes each update to a public HTTPS URL the bot registers on startup.
+Exposes the agent as a Telegram bot (composition root in `demo/telegram/`). It talks to Telegram over a webhook rather than polling: Telegram pushes each update to a public HTTPS URL the bot registers on startup.
 
 ## Setup
 

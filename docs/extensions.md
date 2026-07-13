@@ -65,7 +65,7 @@ def greet(args: dict[str, object]) -> str:
 EXTENSION = Extension(name="greeter", tools=[greet])
 ```
 
-`@tool` turns a function into a tool. The function receives the parsed arguments as a dict and returns a string; a function annotated `-> None` returns `"ok"`. The agent calls each tool by its namespaced name, `<extension>__<tool>` (here `greeter__greet`). An exception raised by the function ends the turn as a `Failed` event rather than being fed back to the model.
+`@tool` turns a function into a tool. The function receives the parsed arguments as a dict and returns a string; a function annotated `-> None` returns `"ok"`. Sync and async functions both work. The agent calls each tool by its namespaced name, `<extension>__<tool>` (here `greeter__greet`). An exception raised by the function is returned to the model as a tool failure so the conversation can continue; it does not end the turn.
 
 ### Tool descriptions
 

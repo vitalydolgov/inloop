@@ -35,4 +35,8 @@ export ANTHROPIC_API_KEY="..."
 uv run pytest -m anthropic
 ```
 
-These call a live backend with a real key and incur costs, which is why they're opt-in rather than part of the default run.
+```sh
+uv run pytest -m deepwiki
+```
+
+These call a live backend (or a public remote service) and may incur costs, which is why they're opt-in rather than part of the default run. The `anthropic` marker needs a real API key; `deepwiki` hits the public DeepWiki MCP server and needs network access.

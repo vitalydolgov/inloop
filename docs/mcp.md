@@ -6,9 +6,19 @@ Authentication is not handled yet — configure servers that need no credentials
 
 ## How it works
 
-`ToolServer` defines the interface: list tools and call them. `make_extension` turns any `ToolServer` into an `Extension`, namespacing its tools as `<server>__<tool>`. `McpToolServer` implements that interface for MCP servers over stdio or HTTP.
+`ToolServer` defines the interface: list tools and call them. `make_tools` (`app/tool_server.py`) turns any `ToolServer` into namespaced tools (`<server>__<tool>`). `McpToolServer` implements that interface for MCP servers over stdio or HTTP.
 
-Servers are declared under the `[mcp.servers]` table of the [configuration](configuration.md) file. Each entry is keyed by the name the server mounts under and carries either a `url` for the HTTP transport or a `command` and `args` for stdio. When no servers are declared, the agent runs with only its installed extensions. At startup the runtime connects every configured server, offers their tools to the model alongside the installed extensions, and closes the connections on exit.
+Servers are declared under the `[mcp.servers]` table of the [configuration](configuration.md) file. Each entry is keyed by the name the server mounts under. Use either HTTP or stdio — not both in the same entry:
+
+| Option | Transport | What it is |
+| --- | --- | --- |
+| `url` | HTTP | Endpoint of a remote MCP server |
+| `command` | stdio | Executable that starts the server process |
+| `args` | stdio | Arguments passed to `command` |
+| `env` | stdio | Optional table of environment variables for the child process |
+| `cwd` | stdio | Optional working directory for the child process |
+
+When no servers are declared, the agent runs with only its installed extensions. At startup the runtime connects every configured server, offers their tools to the model alongside the installed extensions, and closes the connections on exit.
 
 ## Reloading
 

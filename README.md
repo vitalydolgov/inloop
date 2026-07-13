@@ -46,7 +46,7 @@ Around the loop sit the harness capabilities — each a seam where the harness e
 Two ways to talk to the agent:
 
 - **CLI** — an interactive terminal chat that streams each reply live as the model generates it.
-- **Telegram** — a bot served over a webhook, restricted to a single Telegram user. See [Telegram](docs/telegram.md).
+- **Telegram** — a bot served over a webhook. See [Telegram](docs/telegram.md) for setup and access control.
 
 Running the CLI against Gemma 4 31B:
 
@@ -156,6 +156,5 @@ inloop
 - [Providers](docs/providers.md) — supported LLM backends, how to configure them, and how to write your own
 - [Configuration](docs/configuration.md) — the `inloop.toml` settings file and its sections
 - [Ports and adapters](docs/hexagonal.md) — the ports connecting domain and app to their implementations
-- [Logging](docs/logging.md) — MCP server process logs
 - [Testing](docs/testing.md) — test layout, how to run tests, and what gets covered
 - [Telegram](docs/telegram.md) — running the agent as a Telegram bot

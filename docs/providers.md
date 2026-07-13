@@ -92,16 +92,19 @@ Replays a scripted conversation from a JSON file. Only the `assistant` turns are
 
 ## Writing your own provider
 
-A provider is any class that satisfies the `Model` port — a single `stream` method:
+A provider is any class that satisfies the `Model` port — a `stream` method that yields events asynchronously:
 
 ```python
 def stream(
     self,
     messages: list[message.Message],
     tools: list[tool.Tool] = [],
-) -> Iterator[streaming.Event]:
+    system: str = "",
+) -> AsyncIterator[streaming.Event]:
     ...
 ```
+
+`system` is the system prompt for the request.
 
 It is a concrete adapter, so it lives in `infra/providers/` (e.g. `infra/providers/openai.py`) and may import the backend SDK freely. Implementing one is three translations:
 
