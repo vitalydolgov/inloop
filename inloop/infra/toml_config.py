@@ -44,6 +44,7 @@ class McpSection:
                 command=entry.get("command"),
                 args=_expand_paths(entry.get("args")),
                 env=entry.get("env"),
+                cwd=entry.get("cwd"),
                 url=entry.get("url"),
             )
             for name, entry in self._table.items()
@@ -78,11 +79,31 @@ def _expand_paths(args):
 
 
 class TomlConfig:
-    """Application configuration composed from the sections of a TOML file."""
+    """Application configuration composed from the sections of a TOML file, read afresh on each access."""
 
     def __init__(self, path: Path):
-        data = tomllib.loads(path.read_text()) if path.exists() else {}
-        self.agent = ModelSection(data.get("agent", {}).get("model"))
-        self.subagent = ModelSection(data.get("subagent", {}).get("model"))
-        self.mcp = McpSection(data.get("mcp", {}).get("servers", {}))
-        self.telegram = TelegramSection(data.get("telegram", {}))
+        self._path = path
+
+    @property
+    def agent(self) -> ModelSection:
+        """The model the agent runs on."""
+        return ModelSection(self._data.get("agent", {}).get("model"))
+
+    @property
+    def subagent(self) -> ModelSection:
+        """The model spawned subagents run on."""
+        return ModelSection(self._data.get("subagent", {}).get("model"))
+
+    @property
+    def mcp(self) -> McpSection:
+        """The tool servers the agent connects to."""
+        return McpSection(self._data.get("mcp", {}).get("servers", {}))
+
+    @property
+    def telegram(self) -> TelegramSection:
+        """The Telegram bot's settings."""
+        return TelegramSection(self._data.get("telegram", {}))
+
+    @property
+    def _data(self):
+        return tomllib.loads(self._path.read_text()) if self._path.exists() else {}

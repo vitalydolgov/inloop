@@ -1,7 +1,7 @@
 """Tests for the chat agent workflow."""
 
 import asyncio
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator
 
 from inloop.app import agent
 from inloop.app import compaction
@@ -25,8 +25,8 @@ class _ScriptedModel:
 
     async def stream(
         self,
-        messages: Sequence[message.Message],
-        tools: Sequence[tool.Tool] = (),
+        messages: list[message.Message],
+        tools: list[tool.Tool] = [],
         system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         self.seen.append(list(messages))
@@ -44,8 +44,8 @@ class _RaisingModel:
 
     async def stream(
         self,
-        messages: Sequence[message.Message],
-        tools: Sequence[tool.Tool] = (),
+        messages: list[message.Message],
+        tools: list[tool.Tool] = [],
         system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         yield streaming.TextDelta("partial")
@@ -63,8 +63,8 @@ class _TurnModel:
 
     async def stream(
         self,
-        messages: Sequence[message.Message],
-        tools: Sequence[tool.Tool] = (),
+        messages: list[message.Message],
+        tools: list[tool.Tool] = [],
         system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         self.seen.append(list(messages))
@@ -185,8 +185,8 @@ def test_runs_requested_tool_and_feeds_result_back() -> None:
 
         async def stream(
             self,
-            messages: Sequence[message.Message],
-            tools: Sequence[tool.Tool] = (),
+            messages: list[message.Message],
+            tools: list[tool.Tool] = [],
             system: str = "",
         ) -> AsyncIterator[streaming.Event]:
             self.seen.append(list(messages))
@@ -325,8 +325,8 @@ def test_logs_user_input_model_output_and_tool_results() -> None:
 
         async def stream(
             self,
-            messages: Sequence[message.Message],
-            tools: Sequence[tool.Tool] = (),
+            messages: list[message.Message],
+            tools: list[tool.Tool] = [],
             system: str = "",
         ) -> AsyncIterator[streaming.Event]:
             self._turn += 1
@@ -556,8 +556,8 @@ class _CompactingModel:
 
     async def stream(
         self,
-        messages: Sequence[message.Message],
-        tools: Sequence[tool.Tool] = (),
+        messages: list[message.Message],
+        tools: list[tool.Tool] = [],
         system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         self.seen.append(list(messages))
@@ -602,8 +602,8 @@ def test_compacts_between_tool_passes_within_a_turn() -> None:
 
         async def stream(
             self,
-            messages: Sequence[message.Message],
-            tools: Sequence[tool.Tool] = (),
+            messages: list[message.Message],
+            tools: list[tool.Tool] = [],
             system: str = "",
         ) -> AsyncIterator[streaming.Event]:
             self.seen.append(list(messages))
@@ -737,8 +737,8 @@ class _ConcurrentModel:
 
     async def stream(
         self,
-        messages: Sequence[message.Message],
-        tools: Sequence[tool.Tool] = (),
+        messages: list[message.Message],
+        tools: list[tool.Tool] = [],
         system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         block = messages[-1].content[0]
@@ -786,8 +786,8 @@ def _run_and_interrupt(
 
         async def stream(
             self,
-            messages: Sequence[message.Message],
-            tools: Sequence[tool.Tool] = (),
+            messages: list[message.Message],
+            tools: list[tool.Tool] = [],
             system: str = "",
         ) -> AsyncIterator[streaming.Event]:
             for index, event in enumerate(turn):
@@ -906,8 +906,8 @@ def test_interrupt_propagates_to_running_subagent() -> None:
 
         async def stream(
             self,
-            messages: Sequence[message.Message],
-            tools: Sequence[tool.Tool] = (),
+            messages: list[message.Message],
+            tools: list[tool.Tool] = [],
             system: str = "",
         ) -> AsyncIterator[streaming.Event]:
             last = messages[-1].content[0]

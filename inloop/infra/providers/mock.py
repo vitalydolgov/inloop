@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 from inloop.domain import message
@@ -32,8 +32,8 @@ class MockModel:
 
     async def stream(
         self,
-        messages: Sequence[message.Message],
-        tools: Sequence[tool.Tool] = (),
+        messages: list[message.Message],
+        tools: list[tool.Tool] = [],
         system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         """Replay the next recorded reply, or echo the last user message once exhausted."""

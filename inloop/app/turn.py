@@ -1,17 +1,14 @@
 """One agent turn: fold a model stream into the conversation, run tools, compact."""
 
 import asyncio
-from collections.abc import AsyncIterator, Callable
 from enum import Enum
 
 from inloop.app import compaction
 from inloop.app.conversation import Conversation
+from inloop.app.turn_source import TurnSource
 from inloop.domain import message
 from inloop.domain.message import Message, Role
 from inloop.domain import streaming
-from inloop.domain import tool
-
-MakeStream = Callable[[], AsyncIterator[streaming.Event]]
 
 
 class TurnResult(Enum):
@@ -28,13 +25,13 @@ class Turn:
 
     def __init__(
         self,
-        tools: dict[str, tool.Tool],
+        source: TurnSource,
         compactor: compaction.Compactor | None,
-        make_stream: MakeStream,
+        system_prompt: str = "",
     ):
-        self._tools = tools
+        self._source = source
         self._compactor = compactor
-        self._make_stream = make_stream
+        self._system_prompt = system_prompt
         self._result = TurnResult.DONE
 
     @property
@@ -42,18 +39,18 @@ class Turn:
         """Outcome of the last `events` run."""
         return self._result
 
-    async def _execute(self, call):
-        tool = self._tools[call.name]
+    async def _execute(self, tools, call):
+        tool = tools[call.name]
         try:
             content = await tool.execute(call.input)
             return message.ToolSuccess(call.id, content)
         except Exception as error:
             return message.ToolFailure(call.id, f"error: {error}")
 
-    async def _run_tools(self, calls):
+    async def _run_tools(self, tools, calls):
         if not calls:
             return []
-        tasks = [asyncio.create_task(self._execute(call)) for call in calls]
+        tasks = [asyncio.create_task(self._execute(tools, call)) for call in calls]
         try:
             return list(await asyncio.gather(*tasks))
         finally:
@@ -77,9 +74,12 @@ class Turn:
         calls = []
         texts = []
         input_tokens = 0
+        tools = self._source.tools()
 
         try:
-            async for event in self._make_stream():
+            async for event in self._source.stream(
+                conversation, system_prompt=self._system_prompt
+            ):
                 match event:
                     case streaming.ToolUse(id=id, name=name, input=input):
                         calls.append(message.ToolCall(id, name, input))
@@ -89,7 +89,7 @@ class Turn:
                         input_tokens = event.input_tokens
                 yield event
 
-            results = await self._run_tools(calls)
+            results = await self._run_tools(tools, calls)
 
             assistant_blocks = [*texts, *calls]
             if assistant_blocks:

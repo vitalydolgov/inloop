@@ -10,6 +10,12 @@ Authentication is not handled yet — configure servers that need no credentials
 
 Servers are declared under the `[mcp.servers]` table of the [configuration](configuration.md) file. Each entry is keyed by the name the server mounts under and carries either a `url` for the HTTP transport or a `command` and `args` for stdio. When no servers are declared, the agent runs with only its installed extensions. At startup the runtime connects every configured server, offers their tools to the model alongside the installed extensions, and closes the connections on exit.
 
+## Reloading
+
+Type `/reload` in the chat to pick up a change to a server without restarting: the configuration file is read again, the servers it now declares are connected, and the previous ones are dropped. The tools the model is offered change from the next message on, and the conversation carries on as it was. Use it after editing a server's code, adding an entry to `[mcp.servers]`, or removing one.
+
+If a newly configured server fails to connect, the reload reports the error and leaves the servers that were already running in place.
+
 ## Examples
 
 The fastest way to try MCP servers is to add one of the examples below to `inloop.toml`. HTTP servers need no local tooling; stdio servers rely on `uvx`/`uv` or `npx`, which must be installed on your machine.

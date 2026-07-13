@@ -1,6 +1,5 @@
 """Summarizes older turns when a conversation nears the model's context window."""
 
-from collections.abc import Sequence
 
 from inloop.domain import message
 from inloop.domain.message import Message, Role
@@ -30,11 +29,11 @@ class Compactor:
         """Report whether the last request has grown past the compaction budget."""
         return input_tokens >= self._budget
 
-    def can_compact(self, history: Sequence[Message]) -> bool:
+    def can_compact(self, history: list[Message]) -> bool:
         """Report whether there is an earlier turn to summarize."""
         return _split_point(history) > 0
 
-    async def compact(self, history: Sequence[Message]) -> list[Message]:
+    async def compact(self, history: list[Message]) -> list[Message]:
         """Summarize every turn before the latest one, keeping that turn verbatim."""
         split = _split_point(history)
         if split <= 0:

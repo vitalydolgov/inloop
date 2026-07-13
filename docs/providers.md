@@ -97,8 +97,8 @@ A provider is any class that satisfies the `Model` port — a single `stream` me
 ```python
 def stream(
     self,
-    messages: Sequence[message.Message],
-    tools: Sequence[tool.Tool] = (),
+    messages: list[message.Message],
+    tools: list[tool.Tool] = [],
 ) -> Iterator[streaming.Event]:
     ...
 ```

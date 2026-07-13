@@ -1,9 +1,8 @@
-"""Port for a server that hosts callable tools, and adapting one into an extension."""
+"""Port for a server that hosts callable tools, and adapting one into tools."""
 
 from typing import Protocol
 
-from inloop.domain import extension
-from inloop.domain import tool
+from inloop.domain.tool import Tool, ToolSpec
 
 
 class ToolServer(Protocol):
@@ -17,7 +16,7 @@ class ToolServer(Protocol):
         """Release any resources opened by connect()."""
         ...
 
-    async def list_tools(self) -> list[tool.ToolSpec]:
+    async def list_tools(self) -> list[ToolSpec]:
         """Return the tools the server advertises."""
         ...
 
@@ -33,10 +32,16 @@ def _proxy(server, name):
     return execute
 
 
-async def make_extension(name: str, server: ToolServer) -> extension.Extension:
-    """Make a named extension that proxies a tool server's advertised tools."""
-    tools = [
-        tool.Tool(spec.name, spec.description, spec.parameters, _proxy(server, spec.name))
-        for spec in await server.list_tools()
-    ]
-    return extension.Extension(name=name, tools=tools)
+async def make_tools(prefix: str, server: ToolServer) -> list[Tool]:
+    """Make namespaced tools that proxy a tool server's advertised tools."""
+    tools = []
+    for server_tool in await server.list_tools():
+        qualified = f"{prefix}__{server_tool.name}"
+        tool = Tool(
+            qualified,
+            server_tool.description,
+            server_tool.parameters,
+            _proxy(server, server_tool.name)
+        )
+        tools.append(tool)
+    return tools

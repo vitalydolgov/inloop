@@ -24,13 +24,13 @@ Reports the current calendar date. The adapter is `SystemClock` (`infra/system_c
 
 ### `ToolServer` — `app/tool_server.py`
 
-A server hosting tools the agent can list and call, such as an MCP server. Implementations provide `connect`/`aclose` lifecycle hooks so the app layer can manage their transport. The adapter is `McpToolServer` (`infra/mcp_server.py`), which speaks the Model Context Protocol over stdio or HTTP.
+A server hosting tools the agent can list and call, such as an MCP server. Implementations provide `connect`/`aclose` lifecycle hooks so the app can manage their transport. The adapter is `McpToolServer` (`infra/mcp_server.py`), which speaks the Model Context Protocol over stdio or HTTP.
 
 ## Configuration
 
 ### `Config` — `app/config.py`
 
-Application configuration composed of a section per concern, currently `agent` and `subagent` (each a `ModelConfig`) and `mcp` (a `ToolServerConfig`). The adapter is `TomlConfig` (`infra/toml_config.py`), which reads all sections from a single TOML file and exposes one sub-config each.
+Application configuration composed of a section per concern — currently `agent` and `subagent` (each a `ModelConfig`) and `mcp` (a `ToolServerConfig`). The adapter is `TomlConfig` (`infra/toml_config.py`), which reads all sections from a single TOML file and exposes one sub-config each.
 
 ### `ModelConfig` — `app/model_config.py`
 
@@ -42,4 +42,4 @@ Reads the Telegram bot's token, webhook URL, and the route it listens on. The ad
 
 ### `ToolServerConfig` — `app/tool_server_config.py`
 
-Provides the tool servers configured for the agent, keyed by the name each is mounted under; the `connected` context manager consumes it. The adapter is the `[mcp.servers]` section of `TomlConfig` (`infra/toml_config.py`), which builds an `McpToolServer` for each entry.
+Provides the tool servers configured for the agent, keyed by the name each is mounted under. The adapter is the `[mcp.servers]` section of `TomlConfig` (`infra/toml_config.py`), which builds an `McpToolServer` for each entry.

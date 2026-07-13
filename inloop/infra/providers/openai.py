@@ -1,7 +1,7 @@
 """OpenAI-compatible Chat Completions API adapter."""
 
 import json
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator
 
 import openai
 
@@ -10,7 +10,7 @@ from inloop.domain import streaming
 from inloop.domain import tool
 
 
-def _messages(msgs: Sequence[message.Message]) -> list[dict[str, object]]:
+def _messages(msgs: list[message.Message]) -> list[dict[str, object]]:
     """Render domain messages as OpenAI chat messages."""
     chat: list[dict[str, object]] = []
     for msg in msgs:
@@ -66,7 +66,7 @@ def _assistant_turn(msg: message.Message) -> dict[str, object]:
     return entry
 
 
-def _tool_specs(tools: Sequence[tool.Tool]) -> list[dict[str, object]]:
+def _tool_specs(tools: list[tool.Tool]) -> list[dict[str, object]]:
     """Render domain tools as OpenAI function specs."""
     return [
         {
@@ -108,8 +108,8 @@ class OpenAIModel:
 
     async def stream(
         self,
-        messages: Sequence[message.Message],
-        tools: Sequence[tool.Tool] = (),
+        messages: list[message.Message],
+        tools: list[tool.Tool] = [],
         system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         """Stream a response to the conversation, offering the given tools."""

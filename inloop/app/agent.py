@@ -1,19 +1,19 @@
 """Chat agent that owns a conversation and coordinates model turns and tool execution."""
 
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator
 
+from inloop.app import command
 from inloop.app import compaction
 from inloop.app import environment
 from inloop.app.conversation import Conversation
 from inloop.app import logger
 from inloop.app.interaction import Interaction
-from inloop.app.spawn import Spawner, TOOL_NAME as SPAWN_TOOL
-from inloop.domain import message
-from inloop.domain.message import Message, Role
+from inloop.app.server_tools import ServerTools
+from inloop.app.spawn import Spawner
+from inloop.app.turn_source import TurnSource
 from inloop.domain import model
 from inloop.domain import streaming
 from inloop.domain import extension
-from inloop.domain import tool
 
 
 class Agent:
@@ -23,30 +23,50 @@ class Agent:
         self,
         model: model.Model,
         subagent_model: model.Model | None = None,
-        extensions: Sequence[extension.Extension] = (),
+        extensions: list[extension.Extension] = [],
+        server_tools: ServerTools | None = None,
+        commands: list[command.Command] = [],
         logger: logger.Logger | None = None,
         environment: environment.Environment | None = None,
         agent_id: str = "main",
         can_spawn: bool = True,
     ):
         self._model = model
-        self._subagent_model = subagent_model or model
-        self._environment = environment
-        self._extensions = list(extensions)
-        self._logger = logger
-        self._id = agent_id
+        self._commands = commands
+        self._system_prompt = environment.describe() if environment else ""
         self._interaction: Interaction | None = None
-
-        tools: dict[str, tool.Tool] = {}
-        for ext in extensions:
-            tools.update(ext.tools_by_name())
-        self._spawner = Spawner(self._make_child) if can_spawn else None
-        if self._spawner:
-            tools[SPAWN_TOOL] = self._spawner.tool()
-        self._tools = tools
+        self._spawner: Spawner | None = None
 
         self.conversation = Conversation()
         """The conversation transcript owned by this agent."""
+
+        if can_spawn:
+            child_model = subagent_model or model
+
+            def make_child(child_id):
+                return Agent(
+                    child_model,
+                    extensions=extensions,
+                    server_tools=server_tools,
+                    logger=logger,
+                    environment=environment,
+                    agent_id=child_id,
+                    can_spawn=False,
+                )
+
+            self._spawner = Spawner(make_child)
+
+        self._source = TurnSource(
+            model,
+            extensions=extensions,
+            server_tools=server_tools,
+            spawner=self._spawner,
+        )
+
+    @property
+    def commands(self) -> list[command.Command]:
+        """The commands the user can run in this conversation."""
+        return self._commands
 
     def interrupt(self):
         """Ask the current response to stop as soon as possible, cascading to subagents."""
@@ -62,27 +82,10 @@ class Agent:
         """Run an interaction over the given messages and yield agent events."""
         async with Interaction(
             messages,
-            tools=self._tools,
             compactor=compaction.Compactor(self._model) if self._model.context_window > 0 else None,
-            make_stream=self._make_model_stream,
+            source=self._source,
+            commands=self._commands,
+            system_prompt=self._system_prompt,
         ) as self._interaction:
             async for event in self._interaction(self.conversation):
                 yield event
-
-    def _make_model_stream(self):
-        system = self._environment.describe() if self._environment else ""
-        return self._model.stream(
-            self.conversation.history,
-            list(self._tools.values()),
-            system=system,
-        )
-
-    def _make_child(self, agent_id):
-        return Agent(
-            self._subagent_model,
-            extensions=self._extensions,
-            logger=self._logger,
-            environment=self._environment,
-            agent_id=agent_id,
-            can_spawn=False,
-        )

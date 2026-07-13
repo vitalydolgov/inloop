@@ -1,7 +1,7 @@
 """Tests for context compaction."""
 
 import asyncio
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator
 
 from inloop.app import compaction
 from inloop.domain import message
@@ -23,8 +23,8 @@ class _SummaryModel:
 
     async def stream(
         self,
-        messages: Sequence[message.Message],
-        tools: Sequence[tool.Tool] = (),
+        messages: list[message.Message],
+        tools: list[tool.Tool] = [],
         system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         self.seen.append(list(messages))

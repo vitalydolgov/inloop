@@ -1,6 +1,6 @@
 """Anthropic Messages API adapter."""
 
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator
 
 import anthropic
 
@@ -8,7 +8,7 @@ from inloop.domain import message
 from inloop.domain import streaming
 from inloop.domain import tool
 
-def _content(blocks: Sequence[message.Block]) -> list[dict[str, object]]:
+def _content(blocks: list[message.Block]) -> list[dict[str, object]]:
     """Render domain content blocks as Anthropic message content."""
     parts: list[dict[str, object]] = []
     for block in blocks:
@@ -63,8 +63,8 @@ class AnthropicModel:
 
     async def stream(
         self,
-        messages: Sequence[message.Message],
-        tools: Sequence[tool.Tool] = (),
+        messages: list[message.Message],
+        tools: list[tool.Tool] = [],
         system: str = "",
     ) -> AsyncIterator[streaming.Event]:
         """Stream a response to the conversation, offering the given tools."""

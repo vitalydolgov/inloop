@@ -8,8 +8,9 @@ import os
 import aiohttp
 from aiohttp import web
 
-from inloop.app import tool_server_config
 from inloop.app.agent import Agent
+from inloop.app.command import Command
+from inloop.app.server_tools import ServerTools
 from inloop.infra import app_dirs
 from inloop.infra import toml_config
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
@@ -32,12 +33,16 @@ async def amain():
     args = parser.parse_args()
 
     config = toml_config.TomlConfig(app_dirs.config_path())
-    async with tool_server_config.connected(config.mcp) as mcp_extensions:
+    async with ServerTools(config.mcp) as mcp_tools:
         registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
         agent = Agent(
             model=config.agent.model(),
             subagent_model=config.subagent.model(),
-            extensions=[*registry.load(), *mcp_extensions],
+            extensions=registry.load(),
+            server_tools=mcp_tools,
+            commands=[
+                Command("reload", "reconnect the configured tool servers", mcp_tools.reload),
+            ],
             logger=PlainLogger(app_dirs.log_dir()),
         )
 

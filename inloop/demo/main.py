@@ -18,7 +18,8 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.styles import Style
 
 from inloop.app.agent import Agent
-from inloop.app import tool_server_config
+from inloop.app.command import Command
+from inloop.app.server_tools import ServerTools
 from inloop.domain import streaming
 
 from inloop.infra import app_dirs
@@ -97,6 +98,12 @@ class Renderer:
                 self._end_live()
                 self.status = ""
                 self.console.print(Text("\u2723 compacted", style="dim cyan"))
+                self.console.print()
+
+            case streaming.CommandCompleted(name):
+                self._end_live()
+                self.status = ""
+                self.console.print(Text(f"\u2723 done", style="dim cyan"))
                 self.console.print()
 
             case streaming.Interrupted():
@@ -220,12 +227,16 @@ async def amain():
         model = config.agent.model()
         subagent_model = config.subagent.model()
 
-    async with tool_server_config.connected(config.mcp) as mcp_extensions:
+    async with ServerTools(config.mcp) as mcp_tools:
         registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
         agent = Agent(
             model=model,
             subagent_model=subagent_model,
-            extensions=[*registry.load(), *mcp_extensions],
+            extensions=registry.load(),
+            server_tools=mcp_tools,
+            commands=[
+                Command("reload", "reconnect the configured tool servers", mcp_tools.reload),
+            ],
             logger=PlainLogger(app_dirs.log_dir()),
             environment=SystemEnvironment(SystemClock()),
         )
