@@ -5,7 +5,6 @@ from collections.abc import AsyncIterator
 
 from inloop.app import agent
 from inloop.app import compaction
-from inloop.app import logger
 from inloop.domain import extension
 from inloop.domain import message
 from inloop.domain import streaming
@@ -301,80 +300,6 @@ def test_assistant_turn_keeps_text_before_tool_calls() -> None:
     )
 
 
-class _RecordingLogger:
-    """A Logger that records every entry it's given, tagged with the producing agent's id."""
-
-    def __init__(self) -> None:
-        self.entries: list[tuple[str, logger.Entry]] = []
-
-    async def log(self, entry: logger.Entry, agent_id: str = "main") -> None:
-        self.entries.append((agent_id, entry))
-
-
-def test_logs_user_input_model_output_and_tool_results() -> None:
-    async def ran(args: dict[str, object]) -> str:
-        return "4"
-
-    adder = tool.Tool("add", "Add two numbers.", {}, ran)
-
-    class _ToolThenAnswer:
-        context_window = 0
-
-        def __init__(self) -> None:
-            self._turn = 0
-
-        async def stream(
-            self,
-            messages: list[message.Message],
-            tools: list[tool.Tool] = [],
-            system: str = "",
-        ) -> AsyncIterator[streaming.Event]:
-            self._turn += 1
-            if self._turn == 1:
-                yield streaming.ThinkingDelta("thinking about it")
-                yield streaming.ToolUse(id="t1", name="test__add", input={"a": 2, "b": 2})
-                yield streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0)
-            else:
-                yield streaming.TextDelta("the sum is 4")
-                yield streaming.MessageCompleted(
-                    text="the sum is 4", stop_reason="end_turn", input_tokens=0
-                )
-
-    recorder = _RecordingLogger()
-    chat_agent = agent.Agent(
-        _ToolThenAnswer(),
-        extensions=[extension.Extension("test", [adder])],
-        logger=recorder,
-    )
-
-    async def gather() -> None:
-        async for _ in chat_agent.events(_stream(["add 2 and 2"])):
-            pass
-
-    asyncio.run(gather())
-
-    assert recorder.entries == [
-        ("main", message.Message(message.Role.USER, [message.Text("add 2 and 2")])),
-        ("main", streaming.ThinkingDelta("thinking about it")),
-        ("main", streaming.ToolUse(id="t1", name="test__add", input={"a": 2, "b": 2})),
-        ("main", streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0)),
-        (
-            "main",
-            message.Message(
-                message.Role.ASSISTANT,
-                [message.ToolCall("t1", "test__add", {"a": 2, "b": 2})],
-            ),
-        ),
-        ("main", message.Message(message.Role.USER, [message.ToolSuccess("t1", "4")])),
-        ("main", streaming.TextDelta("the sum is 4")),
-        ("main", streaming.MessageCompleted(text="the sum is 4", stop_reason="end_turn", input_tokens=0)),
-        (
-            "main",
-            message.Message(message.Role.ASSISTANT, [message.Text("the sum is 4")]),
-        ),
-    ]
-
-
 def test_model_error_emits_a_failed_event() -> None:
     chat_agent = agent.Agent(_RaisingModel())
 
@@ -476,45 +401,6 @@ def test_steering_message_injected_between_tool_turns() -> None:
         message.Message(message.Role.USER, [message.ToolSuccess("c1", "done")]),
         message.Message(message.Role.USER, [message.Text("actually, focus on X")]),
     ]
-
-
-def test_steered_message_is_logged() -> None:
-    tool_ran = asyncio.Event()
-
-    async def run(args: dict[str, object]) -> str:
-        tool_ran.set()
-        return "done"
-
-    work = tool.Tool("work", "Work.", {}, run)
-    model = _TurnModel(
-        [
-            [
-                streaming.ToolUse(id="c1", name="test__work", input={}),
-                streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
-            ],
-            [streaming.MessageCompleted(text="ok", stop_reason="end_turn", input_tokens=0)],
-        ]
-    )
-    recorder = _RecordingLogger()
-    chat_agent = agent.Agent(
-        model, extensions=[extension.Extension("test", [work])], logger=recorder
-    )
-
-    async def messages() -> AsyncIterator[str]:
-        yield "start"
-        await tool_ran.wait()
-        yield "steer me"
-
-    async def gather() -> None:
-        async for _ in chat_agent.events(messages()):
-            pass
-
-    asyncio.run(gather())
-
-    assert (
-        "main",
-        message.Message(message.Role.USER, [message.Text("steer me")]),
-    ) in recorder.entries
 
 
 def test_events_can_be_called_again_after_a_tool_turn() -> None:
@@ -689,44 +575,6 @@ def test_subagent_runs_on_the_configured_subagent_model() -> None:
     ]
 
 
-def test_parent_logs_subagent_events_tagged_with_distinct_id() -> None:
-    model = _TurnModel(
-        [
-            [
-                streaming.ToolUse(id="c1", name="agent__spawn", input={"task": "do it"}),
-                streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0),
-            ],
-            [
-                streaming.TextDelta("child answer"),
-                streaming.MessageCompleted(text="child answer", stop_reason="end_turn", input_tokens=0),
-            ],
-            [streaming.MessageCompleted(text="all done", stop_reason="end_turn", input_tokens=0)],
-        ]
-    )
-    recorder = _RecordingLogger()
-    chat_agent = agent.Agent(model, logger=recorder)
-
-    async def gather() -> None:
-        async for _ in chat_agent.events(_stream(["delegate"])):
-            pass
-
-    asyncio.run(gather())
-
-    assert (
-        "main",
-        message.Message(message.Role.USER, [message.Text("delegate")]),
-    ) in recorder.entries
-    assert (
-        "sub-1",
-        message.Message(message.Role.USER, [message.Text("do it")]),
-    ) in recorder.entries
-    assert (
-        "sub-1",
-        streaming.MessageCompleted(text="child answer", stop_reason="end_turn", input_tokens=0),
-    ) in recorder.entries
-    assert {agent_id for agent_id, _ in recorder.entries} == {"main", "sub-1"}
-
-
 class _ConcurrentModel:
     """A Model that spawns two subagents, then answers each by its task text."""
 
@@ -755,10 +603,9 @@ class _ConcurrentModel:
         yield streaming.MessageCompleted(text="", stop_reason="tool_use", input_tokens=0)
 
 
-def test_concurrent_subagents_are_distinguishable() -> None:
+def test_concurrent_subagents_return_their_answers() -> None:
     replies = {"task-a": "answer A", "task-b": "answer B"}
-    recorder = _RecordingLogger()
-    chat_agent = agent.Agent(_ConcurrentModel(replies), logger=recorder)
+    chat_agent = agent.Agent(_ConcurrentModel(replies))
 
     async def gather() -> None:
         async for _ in chat_agent.events(_stream(["delegate"])):
@@ -766,14 +613,13 @@ def test_concurrent_subagents_are_distinguishable() -> None:
 
     asyncio.run(gather())
 
-    assert (
-        "sub-1",
-        streaming.MessageCompleted(text="answer A", stop_reason="end_turn", input_tokens=0),
-    ) in recorder.entries
-    assert (
-        "sub-2",
-        streaming.MessageCompleted(text="answer B", stop_reason="end_turn", input_tokens=0),
-    ) in recorder.entries
+    results = [
+        block.content
+        for msg in chat_agent.conversation.history
+        for block in msg.content
+        if isinstance(block, message.ToolSuccess)
+    ]
+    assert set(results) == {"answer A", "answer B"}
 
 
 def _run_and_interrupt(

@@ -26,7 +26,7 @@ _PARAMETERS = {
     "required": ["task"],
 }
 
-MakeChild = Callable[[str], Runnable]
+MakeChild = Callable[[], Runnable]
 
 
 class Spawner:
@@ -35,7 +35,6 @@ class Spawner:
     def __init__(self, make_child: MakeChild):
         self._make_child = make_child
         self._children: list[Runnable] = []
-        self._count = 0
 
     @property
     def children(self) -> list[Runnable]:
@@ -48,8 +47,7 @@ class Spawner:
 
     async def execute(self, args: dict[str, object]) -> str:
         """Run a child on the task and return its final answer."""
-        self._count += 1
-        child = self._make_child(f"sub-{self._count}")
+        child = self._make_child()
         self._children.append(child)
         try:
             return await _run_child(child, str(args["task"]))

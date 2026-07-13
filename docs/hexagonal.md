@@ -10,10 +10,6 @@ A language model that answers a conversation as an async stream of events, repor
 
 Installs, removes, lists, and loads extensions. The adapter is `DirectoryExtensionRegistry` (`infra/directory_registry.py`), which keeps each extension in its own isolated directory under the root path it is given.
 
-### `Logger` — `app/logger.py`
-
-Records entries produced while the agent runs. Each entry is tagged with the id of the agent that produced it (`log(entry, agent_id)`), so a spawned subagent's activity is distinguishable from its parent's. The adapter is `PlainLogger` (`infra/plain_logger.py`), which writes logs to files under the path it is given.
-
 ### `Environment` — `app/environment.py`
 
 Describes the ambient facts the agent puts in front of the model as a system prompt, so it doesn't guess them — starting with today's date, which the model would otherwise infer from stale training data. The adapter is `SystemEnvironment` (`infra/system_environment.py`), which assembles the description from the host, currently composing a `Clock` for the date. Further facts are added by extending the adapter, leaving the agent untouched.

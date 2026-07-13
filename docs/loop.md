@@ -43,5 +43,3 @@ Compaction is enabled when the model reports a positive context window; a window
 The agent can delegate a scoped task to a subagent through the built-in `agent__spawn` tool. The subagent is a fresh agent that runs its own loop over a single message — the task — with the same extensions and tools but its own conversation. It works the task to completion and returns its final reply as the tool result, so from the parent's side delegation is just one tool call.
 
 It uses the parent's subagent model if one was configured, otherwise the same model, and it cannot spawn further subagents — delegation is one level deep. If it fails, the parent gets an error string in place of an answer; if it is interrupted, it returns whatever it had produced so far.
-
-Subagents share the parent's logger and are tagged with their own agent id (`sub-1`, `sub-2`, …); see [Logging](logging.md).

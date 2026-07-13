@@ -6,7 +6,6 @@ from inloop.app import command
 from inloop.app import compaction
 from inloop.app import environment
 from inloop.app.conversation import Conversation
-from inloop.app import logger
 from inloop.app.interaction import Interaction
 from inloop.app.server_tools import ServerTools
 from inloop.app.spawn import Spawner
@@ -26,9 +25,7 @@ class Agent:
         extensions: list[extension.Extension] = [],
         server_tools: ServerTools | None = None,
         commands: list[command.Command] = [],
-        logger: logger.Logger | None = None,
         environment: environment.Environment | None = None,
-        agent_id: str = "main",
         can_spawn: bool = True,
     ):
         self._model = model
@@ -43,14 +40,12 @@ class Agent:
         if can_spawn:
             child_model = subagent_model or model
 
-            def make_child(child_id):
+            def make_child():
                 return Agent(
                     child_model,
                     extensions=extensions,
                     server_tools=server_tools,
-                    logger=logger,
                     environment=environment,
-                    agent_id=child_id,
                     can_spawn=False,
                 )
 

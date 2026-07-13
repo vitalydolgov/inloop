@@ -27,7 +27,6 @@ from inloop.infra import app_dirs
 from inloop.infra import providers
 from inloop.infra import toml_config
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
-from inloop.infra.plain_logger import PlainLogger
 from inloop.infra.system_clock import SystemClock
 from inloop.infra.system_environment import SystemEnvironment
 
@@ -245,7 +244,6 @@ async def amain():
             commands=[
                 Command("reload", "reconnect the configured tool servers", mcp_tools.reload),
             ],
-            logger=PlainLogger(app_dirs.log_dir()),
             environment=SystemEnvironment(SystemClock()),
         )
         await chat(agent, model.identifier, no_banner=args.no_banner)

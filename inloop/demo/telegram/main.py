@@ -14,7 +14,6 @@ from inloop.app.server_tools import ServerTools
 from inloop.infra import app_dirs
 from inloop.infra import toml_config
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
-from inloop.infra.plain_logger import PlainLogger
 from inloop.demo.telegram.client import TelegramClient
 from inloop.demo.telegram.server import create_app
 
@@ -43,7 +42,6 @@ async def amain():
             commands=[
                 Command("reload", "reconnect the configured tool servers", mcp_tools.reload),
             ],
-            logger=PlainLogger(app_dirs.log_dir()),
         )
 
         telegram_config = config.telegram
