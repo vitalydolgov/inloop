@@ -113,6 +113,22 @@ def test_opens_every_configured_server_and_exposes_its_tools() -> None:
     assert first.closed and second.closed
 
 
+def test_skips_broken_servers_and_keeps_the_working_ones() -> None:
+    good = _FakeServer([ToolSpec("a", "A.", {})])
+    broken = _BrokenServer()
+
+    async def run():
+        source = _FakeSource({"good": good, "broken": broken})
+        async with ServerTools(source) as hosted:
+            return [t.name for t in hosted.tools()], hosted.errors()
+
+    names, errors = asyncio.run(run())
+
+    assert names == ["good__a"]
+    assert "broken" in errors
+    assert "no such command" in str(errors["broken"])
+
+
 def test_closes_servers_when_the_body_raises() -> None:
     server = _FakeServer([ToolSpec("a", "A.", {})])
 

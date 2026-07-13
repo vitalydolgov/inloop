@@ -15,6 +15,7 @@ class ServerTools:
         self._config = config
         self._servers: dict[str, ToolServer] = {}
         self._tools: list[tool.Tool] = []
+        self._errors: dict[str, BaseException] = {}
 
     async def __aenter__(self):
         self._servers, self._tools = await self._open()
@@ -22,7 +23,7 @@ class ServerTools:
 
     async def __aexit__(self, *error):
         await _close(self._servers)
-        self._servers, self._tools = {}, []
+        self._servers, self._tools, self._errors = {}, [], {}
 
     def tools(self) -> list[tool.Tool]:
         """Return the tools of every connected server, namespaced under that server's name."""
@@ -32,6 +33,10 @@ class ServerTools:
         """Return the names of the currently connected servers."""
         return list(self._servers)
 
+    def errors(self) -> dict[str, BaseException]:
+        """Return servers that failed to connect or list tools on the last open."""
+        return dict(self._errors)
+
     async def reload(self):
         """Connect the servers the configuration now declares and drop the previous ones."""
         previous = self._servers
@@ -40,16 +45,30 @@ class ServerTools:
 
     async def _open(self):
         opened = {}
-        try:
-            for name, server in self._config.load().items():
+        errors = {}
+        for name, server in self._config.load().items():
+            try:
                 await server.connect()
                 opened[name] = server
-            tools = []
-            for name, server in opened.items():
+            except Exception as error:
+                errors[name] = error
+                with suppress(Exception):
+                    await server.aclose()
+
+        tools = []
+        for name, server in list(opened.items()):
+            try:
                 tools.extend(await tool_server.make_tools(name, server))
-        except Exception:
-            await _close(opened)  # keep whatever set was live before
-            raise
+            except Exception as error:
+                errors[name] = error
+                del opened[name]
+                with suppress(Exception):
+                    await server.aclose()
+
+        if not opened and errors:
+            raise next(iter(errors.values()))
+
+        self._errors = errors
         return opened, tools
 
 

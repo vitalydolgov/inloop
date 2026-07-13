@@ -230,6 +230,11 @@ async def amain():
         subagent_model = config.subagent.model()
 
     async with ServerTools(config.mcp) as mcp_tools:
+        for name, _ in mcp_tools.errors().items():
+            rich.console.Console(stderr=True).print(
+                Text(f"\u26a0 {name} not connected due to an error", style="yellow")
+            )
+
         registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
         local_filesystem = LocalFileSystem()
         agent = Agent(
