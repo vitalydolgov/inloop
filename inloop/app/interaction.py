@@ -4,7 +4,6 @@ import asyncio
 from collections.abc import AsyncIterator
 from contextlib import aclosing, suppress
 
-from inloop.app import command
 from inloop.app import compaction
 from inloop.app.conversation import Conversation
 from inloop.app.inbox import Inbox
@@ -23,13 +22,11 @@ class Interaction:
         messages: AsyncIterator[str],
         compactor: compaction.Compactor | None,
         source: TurnSource,
-        commands: list[command.Command] = [],
         system_prompt: str = "",
     ):
         self._messages = messages
         self._source = source
         self._compactor = compactor
-        self._commands = commands
         self._system_prompt = system_prompt
         self._inbox: Inbox | None = None
         self._bridge = asyncio.Queue()
@@ -61,29 +58,9 @@ class Interaction:
     async def __call__(self, conversation: Conversation):
         assert self._inbox is not None
         async for text in self._inbox:
-            if self._commands and text.startswith("/"):
-                async for event in self._run_command(text):
-                    yield event
-                continue
             conversation.add(Message(Role.USER, [message.Text(text)]))
             async for event in self._respond(conversation):
                 yield event
-
-    async def _run_command(self, text):
-        name = text[1:].partition(" ")[0]
-        command = None
-        for candidate in self._commands:
-            if candidate.name == name:
-                command = candidate
-                break
-        if command is None:
-            yield streaming.Failed(f"unknown command: /{name}")
-            return
-        try:
-            await command.run()
-            yield streaming.CommandCompleted(name)
-        except Exception as error:
-            yield streaming.Failed(f"/{name} failed: {error}")
 
     async def _respond(self, conversation):
         while not self._bridge.empty():

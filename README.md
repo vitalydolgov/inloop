@@ -48,7 +48,7 @@ Two ways to talk to the agent:
 - **CLI** — an interactive terminal chat that streams each reply live as the model generates it.
 - **Telegram** — a bot served over a webhook. See [Telegram](docs/telegram.md) for setup and access control.
 
-Running the CLI against Gemma 4 31B:
+You steer in natural language. The agent acts by calling tools — extensions, MCP servers, and a few built-ins — and you see each call as it happens. Running the CLI against Gemma 4 31B:
 
 ```
 > calculate 40+2
@@ -76,6 +76,23 @@ With the [DuckDuckGo MCP](https://github.com/nickclyde/duckduckgo-mcp-server), y
 ⛭ duckduckgo:search {"query": "latest major version of python 2025 2026 current stable release", "max_results": 5}
 
 3.14
+```
+
+Harness control goes through the same path. After you change a server's code, ask the agent to reload — it reconnects from the current config and the next turn sees the new tools:
+
+```
+> read the magic
+
+⛭ magic:magic {}
+
+42
+
+> reload and read again
+
+⛭ agent:reload {}
+⛭ magic:magic {}
+
+abracadabra
 ```
 
 ## Extensions

@@ -55,8 +55,6 @@ async def _reply(agent: Agent, client: TelegramClient, chat_id: int, text: str) 
                 await client.send_message(chat_id, f"⛭ {html.escape(name)}")
             case streaming.Compaction.ENDED:
                 await client.send_message(chat_id, "\u2723 compacted")
-            case streaming.CommandCompleted(name):
-                await client.send_message(chat_id, f"\u2723 done")
             case streaming.MessageCompleted(reply_text, _) if reply_text:
                 for chunk in _chunks(formatting.to_telegram_html(reply_text)):
                     await client.send_message(chat_id, chunk)

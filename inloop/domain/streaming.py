@@ -58,13 +58,6 @@ class Compaction(Enum):
 
 
 @dataclass(frozen=True)
-class CommandCompleted:
-    """A command the user asked the harness to run finished."""
-
-    name: str
-
-
-@dataclass(frozen=True)
 class Interrupted:
     """The response was stopped at the user's request before completing."""
 
@@ -84,7 +77,6 @@ Event = (
     | ToolUse
     | MessageCompleted
     | Compaction
-    | CommandCompleted
     | Interrupted
     | Failed
 )

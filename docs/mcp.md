@@ -22,9 +22,9 @@ When no servers are declared, the agent runs with only its installed extensions.
 
 ## Reloading
 
-Type `/reload` in the chat to pick up a change to a server without restarting: the configuration file is read again, the servers it now declares are connected, and the previous ones are dropped. The tools the model is offered change from the next message on, and the conversation carries on as it was. Use it after editing a server's code, adding an entry to `[mcp.servers]`, or removing one.
+Ask the agent to reload the tool servers (or let it call `agent__reload` itself) to pick up a change without restarting: the configuration file is read again, the servers it now declares are connected, and the previous ones are dropped. The tools the model is offered change from the next turn on, and the conversation carries on as it was. Use it after editing a server's code, adding an entry to `[mcp.servers]`, or removing one. Call the tool alone — not together with other server tools in the same turn.
 
-If a newly configured server fails to connect, the reload reports the error and leaves the servers that were already running in place.
+If a newly configured server fails to connect, the reload reports the error as a tool failure and leaves the servers that were already running in place.
 
 ## Examples
 

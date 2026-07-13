@@ -19,7 +19,6 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.styles import Style
 
 from inloop.app.agent import Agent
-from inloop.app.command import Command
 from inloop.app.server_tools import ServerTools
 from inloop.domain import streaming
 
@@ -98,12 +97,6 @@ class Renderer:
                 self._end_live()
                 self.status = ""
                 self.console.print(Text("\u2723 compacted", style="dim cyan"))
-                self.console.print()
-
-            case streaming.CommandCompleted(name):
-                self._end_live()
-                self.status = ""
-                self.console.print(Text(f"\u2723 done", style="dim cyan"))
                 self.console.print()
 
             case streaming.Interrupted():
@@ -241,9 +234,6 @@ async def amain():
             subagent_model=subagent_model,
             extensions=registry.load(),
             server_tools=mcp_tools,
-            commands=[
-                Command("reload", "reconnect the configured tool servers", mcp_tools.reload),
-            ],
             system_prompt=SystemEnvironment(SystemClock()).describe(),
         )
         await chat(agent, model.identifier, no_banner=args.no_banner)

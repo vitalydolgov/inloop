@@ -34,11 +34,11 @@ class ModelSection:
 class McpSection:
     """Tool servers declared under the `[mcp.servers]` table."""
 
-    def __init__(self, table):
-        self._table = table
+    def __init__(self, servers):
+        self._servers = servers
 
     def load(self) -> dict[str, ToolServer]:
-        """Return a tool server for each entry under `[mcp.servers]`."""
+        """Return a tool server for each entry under `[mcp.servers]`, reading the file afresh."""
         return {
             name: McpToolServer(
                 command=entry.get("command"),
@@ -47,7 +47,7 @@ class McpSection:
                 cwd=entry.get("cwd"),
                 url=entry.get("url"),
             )
-            for name, entry in self._table.items()
+            for name, entry in self._servers().items()
         }
 
 
@@ -97,7 +97,7 @@ class TomlConfig:
     @property
     def mcp(self) -> McpSection:
         """The tool servers the agent connects to."""
-        return McpSection(self._data.get("mcp", {}).get("servers", {}))
+        return McpSection(lambda: self._data.get("mcp", {}).get("servers", {}))
 
     @property
     def telegram(self) -> TelegramSection:

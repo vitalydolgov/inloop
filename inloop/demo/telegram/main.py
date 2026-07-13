@@ -9,7 +9,6 @@ import aiohttp
 from aiohttp import web
 
 from inloop.app.agent import Agent
-from inloop.app.command import Command
 from inloop.app.server_tools import ServerTools
 from inloop.infra import app_dirs
 from inloop.infra import toml_config
@@ -39,9 +38,6 @@ async def amain():
             subagent_model=config.subagent.model(),
             extensions=registry.load(),
             server_tools=mcp_tools,
-            commands=[
-                Command("reload", "reconnect the configured tool servers", mcp_tools.reload),
-            ],
         )
 
         telegram_config = config.telegram

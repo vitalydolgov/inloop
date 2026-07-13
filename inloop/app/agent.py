@@ -2,8 +2,8 @@
 
 from collections.abc import AsyncIterator
 
-from inloop.app import command
 from inloop.app import compaction
+from inloop.app import reload
 from inloop.app.conversation import Conversation
 from inloop.app.interaction import Interaction
 from inloop.app.server_tools import ServerTools
@@ -24,14 +24,12 @@ class Agent:
         subagent_model: model.Model | None = None,
         extensions: list[extension.Extension] | None = None,
         server_tools: ServerTools | None = None,
-        commands: list[command.Command] | None = None,
         system_prompt: str = "",
         _spawn: bool = True,
     ):
         self._model = model
         self._extensions = list(extensions or [])
         self._server_tools = server_tools
-        self._commands = list(commands or [])
         self._system_prompt = system_prompt
         self._interaction: Interaction | None = None
         self._spawner: Spawner | None = None
@@ -43,7 +41,9 @@ class Agent:
         if _spawn:
             subagent_model = subagent_model or model
             self._spawner = Spawner(lambda: self._make_child(subagent_model))
-            extra_tools = [self._spawner.tool()]
+            extra_tools.append(self._spawner.tool())
+        if self._server_tools is not None:
+            extra_tools.append(reload.make_tool(self._server_tools))
 
         self._source = TurnSource(
             model,
@@ -61,11 +61,6 @@ class Agent:
             _spawn=False,
         )
 
-    @property
-    def commands(self) -> list[command.Command]:
-        """The commands the user can run in this conversation."""
-        return self._commands
-
     def interrupt(self):
         """Ask the current response to stop as soon as possible, cascading to subagents."""
         if self._spawner:
@@ -82,7 +77,6 @@ class Agent:
             messages,
             compactor=compaction.Compactor(self._model) if self._model.context_window > 0 else None,
             source=self._source,
-            commands=self._commands,
             system_prompt=self._system_prompt,
         ) as self._interaction:
             async for event in self._interaction(self.conversation):

@@ -18,11 +18,12 @@ Turns continue until the model stops without calling a tool. A user message star
 
 The stream reports what the model is doing as it happens, defined in `domain/streaming.py`: phase markers and deltas for thinking and visible text, `ToolUse` for each tool request, and one terminal event per turn — `MessageCompleted`, `Interrupted`, or `Failed`.
 
-## Commands
+## Built-in tools
 
-A message that starts with `/` is addressed to the harness, not the model: the interaction runs the matching `Command` (`app/command.py`) and reports back with a `CommandCompleted` event (the command name only), leaving the conversation untouched. An unknown command, or one that fails, comes back as `Failed`.
+Beyond extensions and [MCP servers](mcp.md), the agent may offer tools of its own through the turn source's extra-tool list (`app/spawn.py`, `app/reload.py`):
 
-Commands are handed to the agent by whoever composes it, which is what keeps the agent itself unaware of what any of them do. A command's `run` is a side effect — it does not return user-facing text. Today the only one is `/reload`, which rebuilds the tools from the configured [MCP servers](mcp.md). Each turn asks the turn source again, so the new set is what the next message sees. Steering text is never taken for a command — only a message that opens a response.
+- `agent__spawn` — [delegate to a subagent](#subagents).
+- `agent__reload` — reconnect the configured tool servers. Offered only when server tools are wired in. See [Reloading](mcp.md#reloading).
 
 ## Steering
 

@@ -57,3 +57,40 @@ def test_expands_tilde_in_mcp_args(tmp_path: Path, monkeypatch) -> None:
 
     servers = config.mcp.load()
     assert servers["playwright"]._args == ["--output-dir", "/test/home/playwright-mcp"]
+
+
+def test_mcp_load_rereads_the_file_through_a_held_section(tmp_path: Path) -> None:
+    path = _write(
+        tmp_path,
+        """
+        [mcp.servers.deepwiki]
+        url = "https://mcp.deepwiki.com/mcp"
+        """,
+    )
+    section = TomlConfig(path).mcp
+
+    assert list(section.load()) == ["deepwiki"]
+
+    path.write_text("")
+
+    assert section.load() == {}
+
+
+def test_mcp_load_picks_up_added_and_replaced_servers(tmp_path: Path) -> None:
+    path = _write(
+        tmp_path,
+        """
+        [mcp.servers.old]
+        url = "https://old.example/mcp"
+        """,
+    )
+    section = TomlConfig(path).mcp
+
+    path.write_text(
+        """
+        [mcp.servers.new]
+        url = "https://new.example/mcp"
+        """
+    )
+
+    assert list(section.load()) == ["new"]
