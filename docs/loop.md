@@ -6,7 +6,7 @@
 
 An **interaction** (`app/interaction.py`) is the exchange between the user and the agent for a stream of messages. It owns the inbox (`app/inbox.py`), folds mid-run input in as [steering](#steering), and runs **turns** until the agent is idle after each user message.
 
-A **turn** (`app/turn.py`) is one pass over the model. It asks a **turn source** (`app/turn_source.py`) for the tools available right now and for a model stream over the conversation it is folding into, with those tools and the system prompt. The agent builds that source once and hands it to the interaction.
+A **turn** (`app/turn.py`) is one pass over the model. It resolves the tools available right now from a **turn source** (`app/turn_source.py`) once, opens a model stream with that same set and the system prompt, then runs any tool calls against it. The agent builds that source once and hands it to the interaction; each pass re-resolves tools so a mid-session reload is visible on the next turn.
 
 1. The model streams against the current conversation.
 2. If it requests tools — including [spawning a subagent](#subagents) — they run concurrently and their results are appended to the conversation.

@@ -78,7 +78,9 @@ class Turn:
 
         try:
             async for event in self._source.stream(
-                conversation, system_prompt=self._system_prompt
+                conversation,
+                list(tools.values()),
+                system_prompt=self._system_prompt,
             ):
                 match event:
                     case streaming.ToolUse(id=id, name=name, input=input):

@@ -11,7 +11,7 @@ from inloop.domain import tool
 
 
 class TurnSource:
-    """Opening context for a turn: tools available now and a model stream."""
+    """Live tools for a turn and the model stream that offers them."""
 
     def __init__(
         self,
@@ -41,11 +41,12 @@ class TurnSource:
     def stream(
         self,
         conversation: Conversation,
+        tools: list[tool.Tool],
         system_prompt: str = "",
     ) -> AsyncIterator[streaming.Event]:
-        """Open a model stream for the conversation with the tools available now."""
+        """Open a model stream for the conversation with the given tools."""
         return self._model.stream(
             conversation.history,
-            list(self.tools().values()),
+            tools,
             system=system_prompt,
         )
