@@ -28,7 +28,8 @@ Dependency rules:
 - Docstrings should describe what something does or what it is — not how it works or what its parameters are.
 - Do not document helper functions.
 - Import modules directly — do not use `__init__.py` to re-export or aggregate imports.
-- When returning a sequence, always use a list — never a tuple.
+- When a public interface accepts or returns a sequence, use a list — never a tuple or `Sequence`.
+- Prefer a `for` loop over a comprehension; use a comprehension only when it is more efficient or can be passed as an expression.
 
 ### Type annotations
 
