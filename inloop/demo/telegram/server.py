@@ -1,6 +1,7 @@
 """aiohttp application that serves Telegram webhook updates to the agent."""
 
 import html
+import json
 from collections.abc import AsyncIterator
 
 from aiohttp import web
@@ -50,9 +51,13 @@ def _chunks(html_text: str) -> list[str]:
 async def _reply(agent: Agent, client: TelegramClient, chat_id: int, text: str) -> None:
     async for event in agent.events(_single_message(text)):
         match event:
-            case streaming.ToolUse(_, name, _):
+            case streaming.ToolUse(_, name, input):
                 name = name.replace('__', ':', 1)
-                await client.send_message(chat_id, f"⛭ {html.escape(name)}")
+                arguments = html.escape(json.dumps(input, ensure_ascii=False, indent=2))
+                await client.send_message(
+                    chat_id,
+                    f"⛭ {html.escape(name)}\n<pre>{arguments}</pre>",
+                )
             case streaming.Compaction.ENDED:
                 await client.send_message(chat_id, "\u2723 compacted")
             case streaming.MessageCompleted(reply_text, _) if reply_text:
