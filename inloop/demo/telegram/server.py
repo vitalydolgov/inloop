@@ -56,7 +56,7 @@ async def _reply(agent: Agent, client: TelegramClient, chat_id: int, text: str) 
                 arguments = html.escape(json.dumps(input, ensure_ascii=False, indent=2))
                 await client.send_message(
                     chat_id,
-                    f"⛭ {html.escape(name)}\n<pre>{arguments}</pre>",
+                    f"⛭ {html.escape(name)}\n{arguments}",
                 )
             case streaming.Compaction.ENDED:
                 await client.send_message(chat_id, "\u2723 compacted")
