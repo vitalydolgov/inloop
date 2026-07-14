@@ -4,7 +4,7 @@ A provider is an adapter between the agent and a specific LLM backend. Below are
 
 ## Selecting a provider
 
-The agent's model is chosen in the [configuration](configuration.md) file. The `[agent.model]` table names a `provider` and carries that provider's settings; `create_model` (`infra/providers/factory.py`) maps the name to a constructor and passes the remaining keys to it. An optional `[subagent.model]` table, same shape, gives spawned subagents a distinct model — when omitted, they reuse the agent's.
+The agent's model is chosen in the [`config.toml`](configuration.md#configtoml) file. The `[agent.model]` table names a `provider` and carries that provider's settings; `create_model` (`infra/providers/factory.py`) maps the name to a constructor and passes the remaining keys to it. An optional `[subagent.model]` table, same shape, gives spawned subagents a distinct model — when omitted, they reuse the agent's.
 
 ```toml
 [agent.model]
@@ -139,7 +139,7 @@ case "openai":
     )
 ```
 
-The agent can then run on it by naming it in the [configuration](configuration.md) file:
+The agent can then run on it by naming it in the [`config.toml`](configuration.md#configtoml) file:
 
 ```toml
 [agent.model]

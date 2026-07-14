@@ -3,7 +3,8 @@
 import os
 from pathlib import Path
 
-CONFIG_NAME = "inloop.toml"
+CONFIG_NAME = "config.toml"
+MCP_CONFIG_NAME = "mcp.json"
 DEFAULT_HOME = "~/.inloop"
 
 
@@ -13,6 +14,14 @@ def config_path() -> Path:
     if local.exists():
         return local
     return _home() / CONFIG_NAME
+
+
+def mcp_config_path() -> Path:
+    """Return the MCP servers configuration file path, preferring one in the working directory."""
+    local = Path(MCP_CONFIG_NAME)
+    if local.exists():
+        return local
+    return _home() / MCP_CONFIG_NAME
 
 
 def log_dir() -> Path:

@@ -8,35 +8,40 @@ Authentication is not handled yet — configure servers that need no credentials
 
 `ToolServer` defines the interface: list tools and call them. `make_tools` (`app/tool_server.py`) turns any `ToolServer` into namespaced tools (`<server>__<tool>`). `McpToolServer` implements that interface for MCP servers over stdio or HTTP.
 
-Servers are declared under the `[mcp.servers]` table of the [configuration](configuration.md) file. Each entry is keyed by the name the server mounts under. Use either HTTP or stdio — not both in the same entry:
+Servers are declared in a dedicated `mcp.json` file using the conventional MCP client format: a top-level `mcpServers` object, each key the name the server mounts under. Prefer a project-local `mcp.json`, or place one at `~/.inloop/mcp.json` to apply it to every run. Use either HTTP or stdio — not both in the same entry:
 
 | Option | Transport | What it is |
 | --- | --- | --- |
 | `url` | HTTP | Endpoint of a remote MCP server |
 | `command` | stdio | Executable that starts the server process |
 | `args` | stdio | Arguments passed to `command` |
-| `env` | stdio | Optional table of environment variables for the child process |
+| `env` | stdio | Optional object of environment variables for the child process |
 | `cwd` | stdio | Optional working directory for the child process |
 
 When no servers are declared, the agent runs with only its installed extensions. At startup the runtime connects every configured server, offers their tools to the model alongside the installed extensions, and closes the connections on exit.
 
 ## Reloading
 
-Ask the agent to reload the tool servers (or let it call `agent__reload` itself) to pick up a change without restarting: the configuration file is read again, the servers it now declares are connected, and the previous ones are dropped. The tools the model is offered change from the next turn on, and the conversation carries on as it was. Use it after editing a server's code, adding an entry to `[mcp.servers]`, or removing one. Call the tool alone — not together with other server tools in the same turn.
+Ask the agent to reload the tool servers (or let it call `agent__reload` itself) to pick up a change without restarting: `mcp.json` is read again, the servers it now declares are connected, and the previous ones are dropped. The tools the model is offered change from the next turn on, and the conversation carries on as it was. Use it after editing a server's code, adding an entry to `mcpServers`, or removing one. Call the tool alone — not together with other server tools in the same turn.
 
 If a newly configured server fails to connect, the reload reports the error as a tool failure and leaves the servers that were already running in place.
 
 ## Examples
 
-The fastest way to try MCP servers is to add one of the examples below to `inloop.toml`. HTTP servers need no local tooling; stdio servers rely on `uvx`/`uv` or `npx`, which must be installed on your machine.
+The fastest way to try MCP servers is to add one of the examples below to `mcp.json`. HTTP servers need no local tooling; stdio servers rely on `uvx`/`uv` or `npx`, which must be installed on your machine.
 
 ### DeepWiki
 
 [DeepWiki](https://deepwiki.com) is a public, online MCP server that hosts AI-generated documentation for GitHub repositories. It needs no authentication and is a convenient way to test the HTTP transport.
 
-```toml
-[mcp.servers.deepwiki]
-url = "https://mcp.deepwiki.com/mcp"
+```json
+{
+  "mcpServers": {
+    "deepwiki": {
+      "url": "https://mcp.deepwiki.com/mcp"
+    }
+  }
+}
 ```
 
 When the agent starts, the server is loaded as the `deepwiki` extension with these tools:
@@ -53,10 +58,15 @@ Try asking the agent:
 
 Connect the [DuckDuckGo MCP server](https://github.com/nickclyde/duckduckgo-mcp-server) to search the web and fetch page content without an API key.
 
-```toml
-[mcp.servers.duckduckgo]
-command = "uvx"
-args = ["duckduckgo-mcp-server"]
+```json
+{
+  "mcpServers": {
+    "duckduckgo": {
+      "command": "uvx",
+      "args": ["duckduckgo-mcp-server"]
+    }
+  }
+}
 ```
 
 When the agent starts, it loads as the `duckduckgo` extension with these tools:
@@ -72,41 +82,35 @@ Try asking the agent:
 
 Connect a Playwright MCP server such as [`@playwright/mcp`](https://www.npmjs.com/package/@playwright/mcp) to control a browser. This stdio server launches Chrome and exposes browser automation tools.
 
-```toml
-[mcp.servers.playwright]
-command = "npx"
-args = ["-y", "@playwright/mcp", "--browser", "chrome", "--output-dir", "~/.inloop/log/playwright-mcp"]
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp", "--browser", "chrome", "--output-dir", "~/.inloop/log/playwright-mcp"]
+    }
+  }
+}
 ```
 
 When the agent starts, it loads as the `playwright` extension with tools like `playwright__browser_navigate`, `playwright__browser_click`, and `playwright__browser_snapshot`. Chrome must be installed on your system, or you can let Playwright download it with `npx playwright install chrome`. Send the output to `~/.inloop/log` so it stays out of the project tree.
 
 ### Custom MCP
 
-The example server below is not included in the repository; save it to a file such as `testmcp_echo.py`. It exposes a single `echo` tool useful for checking that the wiring works without relying on an internet connection.
+To write your own server, start from [`template-mcp`](https://github.com/vitalydolgov/template-mcp) — a minimal stdio server with a single `health` tool. Clone it, rename the package, and replace the tool with yours.
 
-```python
-import asyncio
+Wire a local checkout in with a stdio entry (set `cwd` to the clone path):
 
-from mcp.server import FastMCP
-
-mcp = FastMCP("inloop-test")
-
-
-@mcp.tool()
-def echo(text: str) -> str:
-    return text
-
-
-if __name__ == "__main__":
-    asyncio.run(mcp.run_stdio_async())
+```json
+{
+  "mcpServers": {
+    "template": {
+      "command": "uv",
+      "args": ["run", "serve.py"],
+      "cwd": "/path/to/template-mcp"
+    }
+  }
+}
 ```
 
-Wire it in with a stdio entry:
-
-```toml
-[mcp.servers.testmcp]
-command = "uv"
-args = ["run", "testmcp_echo.py"]
-```
-
-When the agent starts, it loads as the `testmcp` extension with the tool named `testmcp__echo`.
+When the agent starts, it loads as the `template` extension with the tool named `template__health`.

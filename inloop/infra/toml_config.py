@@ -1,14 +1,11 @@
 """Application configuration read from a single TOML file, composed section by section."""
 
-import os
 import tomllib
 from pathlib import Path
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
-from inloop.app.tool_server import ToolServer
-from inloop.infra.mcp_server import McpToolServer
 from inloop.infra.providers import factory
 
 load_dotenv()
@@ -31,26 +28,6 @@ class ModelSection:
         return factory.create_model(provider, settings)
 
 
-class McpSection:
-    """Tool servers declared under the `[mcp.servers]` table."""
-
-    def __init__(self, servers):
-        self._servers = servers
-
-    def load(self) -> dict[str, ToolServer]:
-        """Return a tool server for each entry under `[mcp.servers]`, reading the file afresh."""
-        return {
-            name: McpToolServer(
-                command=entry.get("command"),
-                args=_expand_paths(entry.get("args")),
-                env=entry.get("env"),
-                cwd=entry.get("cwd"),
-                url=entry.get("url"),
-            )
-            for name, entry in self._servers().items()
-        }
-
-
 class TelegramSection:
     """Telegram bot settings read from the `[telegram]` table."""
 
@@ -71,13 +48,6 @@ class TelegramSection:
         return urlparse(url).path if url else DEFAULT_WEBHOOK_PATH
 
 
-def _expand_paths(args):
-    """Expand leading ~ in each argument to the user's home directory."""
-    if args is None:
-        return None
-    return [os.path.expanduser(arg) for arg in args]
-
-
 class TomlConfig:
     """Application configuration composed from the sections of a TOML file, read afresh on each access."""
 
@@ -93,11 +63,6 @@ class TomlConfig:
     def subagent(self) -> ModelSection:
         """The model spawned subagents run on."""
         return ModelSection(self._data.get("subagent", {}).get("model"))
-
-    @property
-    def mcp(self) -> McpSection:
-        """The tool servers the agent connects to."""
-        return McpSection(lambda: self._data.get("mcp", {}).get("servers", {}))
 
     @property
     def telegram(self) -> TelegramSection:

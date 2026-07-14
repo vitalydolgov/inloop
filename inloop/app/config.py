@@ -3,7 +3,6 @@
 from typing import Protocol
 
 from inloop.app.model_config import ModelConfig
-from inloop.app.tool_server_config import ToolServerConfig
 
 
 class Config(Protocol):
@@ -11,4 +10,3 @@ class Config(Protocol):
 
     agent: ModelConfig
     subagent: ModelConfig
-    mcp: ToolServerConfig

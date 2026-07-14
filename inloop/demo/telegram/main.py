@@ -12,6 +12,7 @@ from inloop.app.builtin import filesystem
 from inloop.app.agent import Agent
 from inloop.app.server_tools import ServerTools
 from inloop.infra import app_dirs
+from inloop.infra import mcp_json_config
 from inloop.infra import toml_config
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
 from inloop.infra.local_filesystem import LocalFileSystem
@@ -33,7 +34,8 @@ async def amain():
     args = parser.parse_args()
 
     config = toml_config.TomlConfig(app_dirs.config_path())
-    async with ServerTools(config.mcp) as mcp_tools:
+    mcp_config = mcp_json_config.McpJsonConfig(app_dirs.mcp_config_path())
+    async with ServerTools(mcp_config) as mcp_tools:
         registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
         local_filesystem = LocalFileSystem()
         agent = Agent(

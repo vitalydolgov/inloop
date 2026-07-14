@@ -9,7 +9,7 @@ uv sync --extra telegram --extra anthropic
 export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
-Set in the `[telegram]` table of the [configuration](configuration.md) file:
+Set in the `[telegram]` table of the [`config.toml`](configuration.md#configtoml) file:
 
 - `bot_token` — the bot's API token, from [@BotFather](https://t.me/BotFather).
 - `webhook_url` — the public HTTPS URL Telegram should deliver updates to; its path becomes the route the bot listens on. Optional when running with `--ngrok`.

@@ -1,45 +1,52 @@
 # Ports and Adapters
 
-Ports are `Protocol` interfaces declared in `domain` or `app`. `infra` provides concrete implementations that satisfy them structurally, with no inheritance. Each entry below states the port's purpose, then names its adapter and briefly describes the concrete implementation.
+Ports are the interfaces through which the application communicates with the outside world. They are declared by the part of the application that needs the capability, using Python `Protocol` interfaces. Adapters provide the capability without becoming a dependency of the port's owner.
+
+Dependencies point toward the core:
+
+- `domain` defines business-facing ports and does not depend on the other layers.
+- `app` defines ports for application capabilities and depends on `domain`.
+- `infra` supplies adapters for ports owned by `domain` or `app`.
+- Composition roots connect adapters to ports.
+
+## Ports and their adapters
 
 ### `Model` — `domain/model.py`
 
-A language model that answers a conversation as an async stream of events, reports its own `identifier` (the provider slug it runs under), and declares its `context_window` (the largest request it accepts, or `0` when unbounded) so the loop can [compact](loop.md#compaction) before overflowing it. The completed-message event carries the request's token usage, the gauge that drives compaction. Adapters are `AnthropicModel` (`infra/providers/anthropic.py`) and `OpenAIModel` (`infra/providers/openai.py`) for any OpenAI-compatible backend. `MockModel` (`infra/providers/mock.py`) replays a recorded conversation and then echoes the user, useful for testing.
+Port for generating model responses. The provider adapters translate domain messages and tools into provider requests, then translate streamed provider responses back into domain events. `AnthropicModel` and `OpenAIModel` connect to hosted model APIs; `MockModel` supplies deterministic responses for local runs and tests. They are in `infra/providers/`.
 
 ### `ExtensionRegistry` — `app/extensions.py`
 
-Installs, removes, lists, and loads extensions. The adapter is `DirectoryExtensionRegistry` (`infra/directory_registry.py`), which keeps each extension in its own isolated directory under the root path it is given.
+Port for managing and loading extensions. `DirectoryExtensionRegistry` (`infra/directory_registry.py`) installs each extension in an isolated directory, records its source, and discovers its entry point when loading it.
 
 ### `Environment` — `app/environment.py`
 
-Describes the ambient facts put in front of the model as a system prompt, so it doesn't guess them — starting with today's date, which the model would otherwise infer from stale training data. The adapter is `SystemEnvironment` (`infra/system_environment.py`), which assembles the description from the host, currently composing a `Clock` for the date. The composition root turns that description into the agent's `system_prompt` string; further facts are added by extending the adapter, leaving the agent untouched.
+Port for describing the environment supplied to the model. `SystemEnvironment` (`infra/system_environment.py`) assembles that description from host-level adapters, keeping the application independent of how those facts are obtained.
 
 ### `Clock` — `app/clock.py`
 
-Reports the current calendar date. The adapter is `SystemClock` (`infra/system_clock.py`), which reads today's date from the operating system. Consumed by `SystemEnvironment` to date the environment description.
+Port for reading the current date. `SystemClock` (`infra/system_clock.py`) obtains the date from the operating system.
 
 ### `ToolServer` — `app/tool_server.py`
 
-A server hosting tools the agent can list and call, such as an MCP server. Implementations provide `connect`/`aclose` lifecycle hooks so the app can manage their transport. The adapter is `McpToolServer` (`infra/mcp_server.py`), which speaks the Model Context Protocol over stdio or HTTP.
+Port for connecting to a server that lists and runs tools. `McpToolServer` (`infra/mcp_server.py`) manages an MCP session and transport, translating tool discovery and calls between the application port and the remote server.
 
 ### `FileSystem` — `app/filesystem.py`
 
-Lists directories and reads, writes, and manages files on the local system. The built-in filesystem tools `read`, `search`, `write`, `append`, `edit`, `list`, `find`, `mkdir`, `move`, `copy`, and `delete` (`app/builtin/filesystem/`) serve it. The adapter is `LocalFileSystem` (`infra/local_filesystem.py`), which accesses the local disk.
-
-## Configuration
+Port for listing, reading, writing, and managing files. `LocalFileSystem` (`infra/local_filesystem.py`) maps those operations to paths on the local disk and leaves the application independent of the filesystem library.
 
 ### `Config` — `app/config.py`
 
-Application configuration composed of a section per concern — currently `agent` and `subagent` (each a `ModelConfig`) and `mcp` (a `ToolServerConfig`). The adapter is `TomlConfig` (`infra/toml_config.py`), which reads all sections from a single TOML file and exposes one sub-config each.
+Port for application configuration. `TomlConfig` (`infra/toml_config.py`) reads the TOML document and exposes its data through the application’s configuration ports, constructing provider-specific objects where needed.
 
 ### `ModelConfig` — `app/model_config.py`
 
-Provides the model a role runs on, or none when that role declares no model of its own. The adapter is the `[agent.model]` and `[subagent.model]` sections of `TomlConfig` (`infra/toml_config.py`), which read a `provider` name and its settings from the table and hand them to `create_model` (`infra/providers/factory.py`) to build the `Model`. When `[subagent.model]` is absent, spawned subagents reuse the agent's.
-
-### `TelegramConfig` — `demo/telegram/config.py`
-
-Reads the Telegram bot's token, webhook URL, and the route it listens on. The adapter is the `[telegram]` section of `TomlConfig`.
+Port for obtaining the model assigned to an application role. `TomlConfig` (`infra/toml_config.py`) resolves the configured provider through the provider factory and returns a `Model` adapter.
 
 ### `ToolServerConfig` — `app/tool_server_config.py`
 
-Provides the tool servers configured for the agent, keyed by the name each is mounted under. The adapter is the `[mcp.servers]` section of `TomlConfig` (`infra/toml_config.py`), which builds an `McpToolServer` for each entry.
+Port for loading configured tool servers. `McpJsonConfig` (`infra/mcp_json_config.py`) reads the MCP client document and constructs an `McpToolServer` adapter for each declared server.
+
+### `TelegramConfig`
+
+Port for reading Telegram runtime settings. `TomlConfig` (`infra/toml_config.py`) translates the file-backed settings into the interface consumed by the Telegram runtime.

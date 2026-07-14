@@ -8,5 +8,6 @@ __pycache__/
 .DS_Store
 
 # Application
-inloop.toml
+config.toml
+mcp.json
 .env

@@ -110,17 +110,18 @@ An extension is a named bundle of tools that the agent can call. Each is a self-
 
 ### MCP servers
 
-Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with no per-server code — its tools become agent tools, namespaced `<server>__<tool>`. Declare servers in `inloop.toml`. See [MCP](docs/mcp.md) for remote and local server examples.
+Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with no per-server code — its tools become agent tools, namespaced `<server>__<tool>`. Declare servers in `mcp.json`. See [MCP](docs/mcp.md) for remote and local server examples. To write your own, you can start from [`template-mcp`](https://github.com/vitalydolgov/template-mcp).
 
 ## Setup
 
-1. Provide a config file — optional, since defaults apply without one. Copy `inloop.toml.example` to `inloop.toml` for a project-local config, or create `~/.inloop/inloop.toml` to apply it to every run:
+1. Provide config files — optional, since defaults apply without them. Copy `config.toml.example` to `config.toml` for agent settings, and `mcp.json.example` to `mcp.json` for MCP servers (project-local), or create the same names under `~/.inloop/` to apply them to every run:
 
    ```sh
-   cp inloop.toml.example inloop.toml
+   cp config.toml.example config.toml
+   cp mcp.json.example mcp.json
    ```
 
-   `INLOOP_HOME` relocates `~/.inloop`, where logs and installed extensions also live. See [Configuration](docs/configuration.md) for the file's sections.
+   `INLOOP_HOME` relocates `~/.inloop`, where logs and installed extensions also live. See [Configuration](docs/configuration.md) for the files' sections.
 
 2. Install the providers you want and export the matching API key (or put it in a `.env` file). Each provider is a package extra.
 
@@ -172,7 +173,7 @@ inloop
 - [Extensions](docs/extensions.md) — how to create and install extensions
 - [MCP servers](docs/mcp.md) — how to connect to a local or remote MCP server
 - [Providers](docs/providers.md) — supported LLM backends, how to configure them, and how to write your own
-- [Configuration](docs/configuration.md) — the `inloop.toml` settings file and its sections
+- [Configuration](docs/configuration.md) — the `config.toml` and `mcp.json` settings files and their sections
 - [Ports and adapters](docs/hexagonal.md) — the ports connecting domain and app to their implementations
 - [Testing](docs/testing.md) — test layout, how to run tests, and what gets covered
 - [Telegram](docs/telegram.md) — running the agent as a Telegram bot
