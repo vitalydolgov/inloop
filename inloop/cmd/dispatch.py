@@ -26,19 +26,11 @@ def main():
     command, *args = sys.argv[1:]
 
     match command:
-        case "extensions":
-            from inloop.cmd import extensions
-
-            _run("extensions", extensions.main, args)
-        case "probe":
-            from inloop.cmd import probe
-
-            _run("probe", probe.main, args)
         case "telegram-demo":
             from inloop.demo.telegram import main as telegram_demo
 
             _run("telegram-demo", telegram_demo.main, args)
         case _:
             print(f"Unknown command: {command}", file=sys.stderr)
-            print("Usage: inloop [extensions|probe|telegram-demo]", file=sys.stderr)
+            print("Usage: inloop [telegram-demo]", file=sys.stderr)
             sys.exit(1)

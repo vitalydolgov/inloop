@@ -5,10 +5,7 @@ from collections.abc import AsyncIterator, Iterable
 
 import pytest
 
-import calculator
-
 from inloop.app import agent
-from inloop.domain import extension
 from inloop.domain import streaming
 
 pytest.importorskip("anthropic")
@@ -40,10 +37,10 @@ def _final_text(events: Iterable[streaming.Event]) -> str:
     return text
 
 
-def _agent(extensions: list[extension.Extension] = []) -> agent.Agent:
+def _agent() -> agent.Agent:
     client = anthropic.AsyncAnthropic()
     model = anthropic.AnthropicModel(client, model=MODEL, max_tokens=1024, context_window=0)
-    return agent.Agent(model, extensions=extensions)
+    return agent.Agent(model)
 
 
 def test_answers_a_factual_question() -> None:
@@ -65,12 +62,3 @@ def test_remembers_word_across_messages() -> None:
     )
 
     assert secret in _final_text(events).lower()
-
-
-def test_runs_the_calculator_tool() -> None:
-    chat = _agent(extensions=[calculator.EXTENSION])
-    events = _run(chat, ["What is 2 + 2 * 3? Use the calculator tool."])
-
-    tool_uses = [e for e in events if isinstance(e, streaming.ToolUse)]
-    assert any(use.name == "calculator__evaluate" for use in tool_uses)
-    assert "8" in _final_text(events)

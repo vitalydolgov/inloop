@@ -2,7 +2,7 @@
 
 from inloop.app.filesystem import FileSystem
 from inloop.domain.tool import Tool
-from inloop_kit.tool import tool
+from inloop.domain.tool import tool
 
 DESCRIPTION = (
     "Finds files below a directory whose names match a glob pattern, returning one path per line. "

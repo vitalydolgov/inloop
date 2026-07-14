@@ -6,7 +6,6 @@ from collections.abc import AsyncIterator
 from inloop.app import agent
 from inloop.app import system_prompt
 from inloop.app import compaction
-from inloop.domain import extension
 from inloop.domain import message
 from inloop.domain import streaming
 from inloop.domain import tool
@@ -142,7 +141,7 @@ def test_offers_its_tools_to_the_model() -> None:
         return "sunny"
 
     weather = tool.Tool(
-        name="weather",
+        name="test__weather",
         description="Look up the weather.",
         parameters={"type": "object", "properties": {}},
         execute=look_up,
@@ -150,7 +149,7 @@ def test_offers_its_tools_to_the_model() -> None:
     model = _ScriptedModel(["sure"])
     chat_agent = agent.Agent(
         model,
-        extensions=[extension.Extension("test", [weather])],
+        tools=[weather],
         _spawn=False,
     )
 
@@ -160,7 +159,7 @@ def test_offers_its_tools_to_the_model() -> None:
 
     asyncio.run(gather())
 
-    namespaced = extension.Extension("test", [weather]).tools_by_name()["test__weather"]
+    namespaced = weather
     assert model.offered_tools == [[namespaced]]
 
 
@@ -194,7 +193,7 @@ def test_runs_requested_tool_and_feeds_result_back() -> None:
         return "4"
 
     adder = tool.Tool(
-        name="add",
+        name="test__add",
         description="Add two numbers.",
         parameters={"type": "object", "properties": {}},
         execute=run,
@@ -225,7 +224,7 @@ def test_runs_requested_tool_and_feeds_result_back() -> None:
                 )
 
     model = _ToolThenAnswer()
-    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [adder])])
+    chat_agent = agent.Agent(model, tools=[adder])
 
     async def gather() -> list[streaming.Event]:
         return [event async for event in chat_agent.events(_stream(["add 2 and 2"]))]
@@ -256,8 +255,8 @@ def test_runs_every_tool_requested_in_one_turn() -> None:
 
         return run
 
-    first = tool.Tool("first", "First.", {}, make("first"))
-    second = tool.Tool("second", "Second.", {}, make("second"))
+    first = tool.Tool("test__first", "First.", {}, make("first"))
+    second = tool.Tool("test__second", "Second.", {}, make("second"))
     model = _TurnModel(
         [
             [
@@ -268,7 +267,7 @@ def test_runs_every_tool_requested_in_one_turn() -> None:
             [streaming.MessageCompleted(text="done", stop_reason="end_turn", input_tokens=0)],
         ]
     )
-    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [first, second])])
+    chat_agent = agent.Agent(model, tools=[first, second])
 
     async def gather() -> None:
         async for _ in chat_agent.events(_stream(["go"])):
@@ -300,7 +299,7 @@ def test_assistant_turn_keeps_text_before_tool_calls() -> None:
     async def run(args: dict[str, object]) -> str:
         return "ok"
 
-    only = tool.Tool("only", "Only.", {}, run)
+    only = tool.Tool("test__only", "Only.", {}, run)
     model = _TurnModel(
         [
             [
@@ -311,7 +310,7 @@ def test_assistant_turn_keeps_text_before_tool_calls() -> None:
             [streaming.MessageCompleted(text="final", stop_reason="end_turn", input_tokens=0)],
         ]
     )
-    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [only])])
+    chat_agent = agent.Agent(model, tools=[only])
 
     async def gather() -> None:
         async for _ in chat_agent.events(_stream(["go"])):
@@ -343,7 +342,7 @@ def test_tool_error_is_reported_as_result() -> None:
     async def explode(args: dict[str, object]) -> str:
         raise RuntimeError("tool broke")
 
-    bad = tool.Tool("bad", "Breaks.", {}, explode)
+    bad = tool.Tool("test__bad", "Breaks.", {}, explode)
     model = _TurnModel(
         [
             [
@@ -354,7 +353,7 @@ def test_tool_error_is_reported_as_result() -> None:
             [streaming.MessageCompleted(text="I see the tool failed.", stop_reason="end_turn", input_tokens=0)],
         ]
     )
-    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [bad])])
+    chat_agent = agent.Agent(model, tools=[bad])
 
     async def gather() -> list[streaming.Event]:
         return [event async for event in chat_agent.events(_stream(["go"]))]
@@ -395,7 +394,7 @@ def test_steering_message_injected_between_tool_turns() -> None:
         tool_ran.set()
         return "done"
 
-    work = tool.Tool("work", "Work.", {}, run)
+    work = tool.Tool("test__work", "Work.", {}, run)
     model = _TurnModel(
         [
             [
@@ -405,7 +404,7 @@ def test_steering_message_injected_between_tool_turns() -> None:
             [streaming.MessageCompleted(text="acknowledged", stop_reason="end_turn", input_tokens=0)],
         ]
     )
-    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [work])])
+    chat_agent = agent.Agent(model, tools=[work])
 
     async def messages() -> AsyncIterator[str]:
         yield "start the task"
@@ -432,7 +431,7 @@ def test_events_can_be_called_again_after_a_tool_turn() -> None:
     async def run(args: dict[str, object]) -> str:
         return "done"
 
-    work = tool.Tool("work", "Work.", {}, run)
+    work = tool.Tool("test__work", "Work.", {}, run)
     model = _TurnModel(
         [
             [
@@ -443,7 +442,7 @@ def test_events_can_be_called_again_after_a_tool_turn() -> None:
             [streaming.MessageCompleted(text="second", stop_reason="end_turn", input_tokens=0)],
         ]
     )
-    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [work])])
+    chat_agent = agent.Agent(model, tools=[work])
 
     async def gather() -> list[streaming.Event]:
         async for _ in chat_agent.events(_stream(["go"])):
@@ -502,7 +501,7 @@ def test_compacts_between_tool_passes_within_a_turn() -> None:
     async def run(args: dict[str, object]) -> str:
         return "ok"
 
-    work = tool.Tool("work", "Work.", {}, run)
+    work = tool.Tool("test__work", "Work.", {}, run)
 
     class _ToolLoopModel:
         context_window = 100
@@ -532,7 +531,7 @@ def test_compacts_between_tool_passes_within_a_turn() -> None:
                 yield streaming.MessageCompleted(text="done", stop_reason="end_turn", input_tokens=10)
 
     model = _ToolLoopModel()
-    chat_agent = agent.Agent(model, extensions=[extension.Extension("test", [work])])
+    chat_agent = agent.Agent(model, tools=[work])
 
     async def gather() -> list[streaming.Event]:
         return [event async for event in chat_agent.events(_stream(["setup", "work"]))]
@@ -729,7 +728,7 @@ def test_interrupt_cancels_a_running_tool() -> None:
             raise
         return "unreachable"
 
-    hang_tool = tool.Tool("hang", "Hang.", {}, hang)
+    hang_tool = tool.Tool("test__hang", "Hang.", {}, hang)
     model = _TurnModel(
         [
             [
@@ -740,7 +739,7 @@ def test_interrupt_cancels_a_running_tool() -> None:
         ]
     )
     chat_agent = agent.Agent(
-        model, extensions=[extension.Extension("test", [hang_tool])]
+        model, tools=[hang_tool]
     )
 
     async def run() -> list[streaming.Event]:

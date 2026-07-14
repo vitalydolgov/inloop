@@ -2,7 +2,7 @@
 
 from inloop.app.filesystem import FileSystem
 from inloop.domain.tool import Tool
-from inloop_kit.tool import tool
+from inloop.domain.tool import tool
 
 DESCRIPTION = (
     "Writes text to a file on the local filesystem, creating it or replacing its entire contents. "

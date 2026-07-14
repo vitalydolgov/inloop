@@ -1,6 +1,6 @@
 # MCP servers
 
-An [MCP](https://modelcontextprotocol.io) server hosts a set of tools behind a standard protocol. Because that is the same shape as an extension, any MCP server can be wired in as an extension with no per-server wrapper: point the loader at the server and its tools become available under namespace `<server>__<tool>`.
+An [MCP](https://modelcontextprotocol.io) server hosts a set of tools behind a standard protocol. Any MCP server can be wired in with no per-server wrapper: its tools become available under namespace `<server>__<tool>`.
 
 Authentication is not handled yet — configure servers that need no credentials, or ones reachable on the local machine.
 
@@ -18,7 +18,7 @@ Servers are declared in `~/.inloop/mcp.json` using the conventional MCP client f
 | `env` | stdio | Optional object of environment variables for the child process |
 | `cwd` | stdio | Optional working directory for the child process |
 
-When no servers are declared, the agent runs with only its installed extensions. At startup the runtime connects every configured server, offers their tools to the model alongside the installed extensions, and closes the connections on exit.
+At startup the runtime connects every configured server, offers their tools to the model, and closes the connections on exit.
 
 ## Reloading
 
@@ -44,7 +44,7 @@ The fastest way to try MCP servers is to add one of the examples below to `mcp.j
 }
 ```
 
-When the agent starts, the server is loaded as the `deepwiki` extension with these tools:
+When the agent starts, the server provides these tools:
 
 - `deepwiki__read_wiki_structure` — list documentation topics for a repo
 - `deepwiki__read_wiki_contents` — read the generated docs for a repo
@@ -69,7 +69,7 @@ Connect the [DuckDuckGo MCP server](https://github.com/nickclyde/duckduckgo-mcp-
 }
 ```
 
-When the agent starts, it loads as the `duckduckgo` extension with these tools:
+When the agent starts, it provides these tools:
 
 - `duckduckgo__search` — search the web and return formatted results
 - `duckduckgo__fetch_content` — fetch and parse a webpage
@@ -93,7 +93,7 @@ Connect a Playwright MCP server such as [`@playwright/mcp`](https://www.npmjs.co
 }
 ```
 
-When the agent starts, it loads as the `playwright` extension with tools like `playwright__browser_navigate`, `playwright__browser_click`, and `playwright__browser_snapshot`. Chrome must be installed on your system, or you can let Playwright download it with `npx playwright install chrome`. Send the output to `~/.inloop/log` so it stays out of the project tree.
+It provides tools like `playwright__browser_navigate`, `playwright__browser_click`, and `playwright__browser_snapshot`. Chrome must be installed on your system, or you can let Playwright download it with `npx playwright install chrome`. Send the output to `~/.inloop/log` so it stays out of the project tree.
 
 ### Custom MCP
 
@@ -113,4 +113,4 @@ Wire a local checkout in with a stdio entry (set `cwd` to the clone path):
 }
 ```
 
-When the agent starts, it loads as the `template` extension with the tool named `template__health`.
+It provides the tool named `template__health`.

@@ -2,7 +2,7 @@
 
 from inloop.app.filesystem import FileSystem
 from inloop.domain.tool import Tool
-from inloop_kit.tool import tool
+from inloop.domain.tool import tool
 
 DESCRIPTION = (
     "Edits an existing local file by replacing one exact occurrence of a text span with new text. "

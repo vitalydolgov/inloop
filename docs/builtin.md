@@ -1,6 +1,6 @@
 # Built-in tools
 
-The runtime gives the agent a small set of local filesystem tools in addition to installed extensions and configured [MCP servers](mcp.md). These tools operate relative to the process's current working directory unless a path is absolute.
+The runtime gives the agent a small set of local filesystem tools in addition to configured [MCP servers](mcp.md). These tools operate relative to the process's current working directory unless a path is absolute.
 
 ## Filesystem tools
 

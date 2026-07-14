@@ -29,7 +29,6 @@ from inloop.infra.agents_file import AgentsFile
 from inloop.infra import mcp_json_config
 from inloop.infra import providers
 from inloop.infra import toml_config
-from inloop.infra.directory_registry import DirectoryExtensionRegistry
 from inloop.infra.local_filesystem import LocalFileSystem
 from inloop.infra.system_clock import SystemClock
 from inloop.infra.system_environment import SystemEnvironment
@@ -245,12 +244,10 @@ async def amain():
                 Text(f"\u26a0 {name} not connected due to an error", style="yellow")
             )
 
-        registry = DirectoryExtensionRegistry(app_dirs.extensions_dir())
         local_filesystem = LocalFileSystem()
         agent = Agent(
             model,
             subagent_model=subagent_model,
-            extensions=registry.load(),
             server_tools=mcp_tools,
             system_prompt=system_prompt.compose(
                 SystemEnvironment(SystemClock()),

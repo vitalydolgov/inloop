@@ -1,4 +1,4 @@
-"""Resolves where the app keeps its config file, logs, and installed extensions."""
+"""Resolves where the app keeps its config file and logs."""
 
 import os
 from pathlib import Path
@@ -36,11 +36,6 @@ def agents_file_path(
 def log_dir() -> Path:
     """Return the directory run logs are written to."""
     return _home() / "log"
-
-
-def extensions_dir() -> Path:
-    """Return the directory installed extensions are stored in."""
-    return _home() / "extensions"
 
 
 def _home():

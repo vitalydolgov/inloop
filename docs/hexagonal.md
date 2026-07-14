@@ -15,10 +15,6 @@ Dependencies point toward the core:
 
 Port for generating model responses. The provider adapters translate domain messages and tools into provider requests, then translate streamed provider responses back into domain events. `AnthropicModel` and `OpenAIModel` connect to hosted model APIs; `MockModel` supplies deterministic responses for local runs and tests. They are in `infra/providers/`.
 
-### `ExtensionRegistry` — `app/extensions.py`
-
-Port for managing and loading extensions. `DirectoryExtensionRegistry` (`infra/directory_registry.py`) installs each extension in an isolated directory, records its source, and discovers its entry point when loading it.
-
 ### `Environment` — `app/environment.py`
 
 Port for describing the environment supplied to the model. `SystemEnvironment` (`infra/system_environment.py`) assembles that description from host-level adapters, keeping the application independent of how those facts are obtained.

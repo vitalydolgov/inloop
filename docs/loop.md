@@ -20,7 +20,7 @@ The stream reports what the model is doing as it happens, defined in `domain/str
 
 ## Built-in tools
 
-Beyond extensions and [MCP servers](mcp.md), the agent may offer tools of its own through the turn source's extra-tool list. See [Built-in tools](builtin-tools.md) for the filesystem tools.
+Beyond configured [MCP servers](mcp.md), the agent may offer tools of its own through the turn source's extra-tool list. See [Built-in tools](builtin.md) for the filesystem tools.
 
 - `agent__spawn` — [delegate to a subagent](#subagents).
 - `agent__reload` — reconnect the configured tool servers. Offered only when server tools are wired in. See [Reloading](mcp.md#reloading).
@@ -41,6 +41,6 @@ Compaction is enabled when the model reports a positive context window; a window
 
 ## Subagents
 
-The agent can delegate a scoped task to a subagent through the built-in `agent__spawn` tool. The subagent is a fresh agent that runs its own loop over a single message — the task — with the same extensions and tools but its own conversation. It works the task to completion and returns its final reply as the tool result, so from the parent's side delegation is just one tool call.
+The agent can delegate a scoped task to a subagent through the built-in `agent__spawn` tool. The subagent is a fresh agent that runs its own loop over a single message — the task — with the same tools but its own conversation. It works the task to completion and returns its final reply as the tool result, so from the parent's side delegation is just one tool call.
 
 It uses the parent's subagent model if one was configured, otherwise the same model, and it cannot spawn further subagents — delegation is one level deep. If it fails, the parent gets an error string in place of an answer; if it is interrupted, it returns whatever it had produced so far.

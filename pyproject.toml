@@ -8,7 +8,6 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "inloop-kit",
     "mcp>=1.0.0",
     "openai>=1.0.0",
     "prompt-toolkit>=3.0.0",
@@ -35,19 +34,14 @@ packages = ["inloop"]
 inloop = "inloop.cmd.dispatch:main"
 
 [tool.uv]
-default-groups = ["dev", "bundled_extensions"]
+default-groups = ["dev"]
 
 [tool.uv.sources]
-inloop-kit = { path = "inloop_kit", editable = true }
-calculator = { path = "extensions/calculator", editable = true }
 
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
     "ruff>=0.15.20",
-]
-bundled_extensions = [
-    "calculator",
 ]
 
 [tool.pytest.ini_options]

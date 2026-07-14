@@ -2,7 +2,7 @@
 
 from inloop.app.filesystem import FileSystem
 from inloop.domain.tool import Tool
-from inloop_kit.tool import tool
+from inloop.domain.tool import tool
 
 DESCRIPTION = (
     "Lists the entries in a local directory, one name per line in sorted order. "

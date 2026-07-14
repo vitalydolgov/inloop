@@ -1,6 +1,6 @@
 # Inloop
 
-A hackable Python implementation of the agentic loop: a language model streams a conversation, calls tools or delegates to subagents, and acts on their results. Add your own tools via extensions.
+A hackable Python implementation of the agentic loop with support for MCP servers: a language model streams a conversation, calls tools or delegates to subagents, and acts on their results.
 
 ## North star
 
@@ -37,7 +37,7 @@ Around the loop sit the harness capabilities — each a seam where the harness e
 
 - **Prompt** — the instructions and framing that shape behavior.
 - **Orchestration** — coordination above a single loop: sub-agents, workflows, routing, retries.
-- **Tools & Skills** — the actions the agent can take, supplied as extensions.
+- **Tools & Skills** — the actions the agent can take.
 - **Security & Governance** — the limits on what an action may do: permissions, sandboxing, audit, approval.
 - **Memory** — state that outlives a single turn or session: transcripts, profiles, caches.
 
@@ -48,14 +48,14 @@ Two ways to talk to the agent:
 - **CLI** — an interactive terminal chat that streams each reply live as the model generates it.
 - **Telegram** — a bot served over a webhook. See [Telegram](docs/telegram.md) for setup and access control.
 
-You steer in natural language. The agent acts by calling tools — extensions, MCP servers, and a few built-ins — and you see each call as it happens. Running the CLI against Gemma 4 31B:
+You steer in natural language. The agent acts by calling tools — MCP servers and a few built-ins — and you see each call as it happens. Running the CLI against Gemma 4 31B:
 
 ```
-> calculate 40+2
+> list the current directory
 
-⛭ calculator:evaluate {'expression': '40+2'}
+⛭ list {}
 
-40 + 2 = 42
+README.md
 ```
 
 With the [Playwright MCP](https://www.npmjs.com/package/@playwright/mcp), you can control the browser:
@@ -95,22 +95,9 @@ Harness control goes through the same path. After you change a server's code, as
 abracadabra
 ```
 
-## Extensions
+## MCP servers
 
-An extension is a named bundle of tools that the agent can call. Each is a self-contained package — bundled in the repo under `extensions/`, or living in its own repo — that exposes an `EXTENSION` value describing its tools. It depends only on `inloop-kit`, the small extension toolkit, not the whole framework. Installed extensions are discovered automatically. Writing one means declaring tools with `inloop_kit` and can be tried out with `uv run inloop probe`, without starting the agent. See [Extensions](docs/extensions.md) for how to create and install one.
-
-### Bundled extensions
-
-- `calculator` — evaluates arithmetic expressions (a minimal example extension)
-
-### External extensions
-
-- [`ios-simulator`](https://github.com/vitalydolgov/ios-simulator-inloop) — drives an iOS simulator through Appium
-- [`newsfeed`](https://github.com/vitalydolgov/newsfeed-inloop) — reads vtech news from multiple sources — Hacker News, etc. — each as its own feed
-
-### MCP servers
-
-Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with no per-server code — its tools become agent tools, namespaced `<server>__<tool>`. Declare servers in `mcp.json`. See [MCP](docs/mcp.md) for remote and local server examples. To write your own, you can start from [`template-mcp`](https://github.com/vitalydolgov/template-mcp).
+Any [MCP](https://modelcontextprotocol.io) server plugs in with no per-server code — its tools become agent tools, namespaced `<server>__<tool>`. Declare servers in `mcp.json`. See [MCP](docs/mcp.md) for remote and local server examples. To write your own, you can start from [`template-mcp`](https://github.com/vitalydolgov/template-mcp).
 
 ## Setup
 
@@ -122,7 +109,7 @@ Any [MCP](https://modelcontextprotocol.io) server plugs in as an extension with 
    cp mcp.json.example ~/.inloop/mcp.json
    ```
 
-   `INLOOP_HOME` relocates `~/.inloop`, where logs and installed extensions also live. Run `inloop --instructions=user` to use its `AGENTS.md` instead of local instructions. See [Configuration](docs/configuration.md) for the files' contents and locations.
+   `INLOOP_HOME` relocates `~/.inloop`, where logs also live. Run `inloop --instructions=user` to use its `AGENTS.md` instead of local instructions. See [Configuration](docs/configuration.md) for the files' contents and locations.
 
 2. Install the providers you want and export the matching API key (or put it in a `.env` file). Each provider is a package extra.
 
@@ -163,15 +150,12 @@ inloop
 
 | Subcommand | Options | What it does |
 | --- | --- | --- |
-| `extensions` | `install\|uninstall\|list` | Manage installed extensions — see [Extensions](docs/extensions.md) |
-| `probe` | `<extension> <tool> [key=value ...]` | Run a single tool without starting the agent — see [Extensions](docs/extensions.md) |
 | `telegram-demo` | | Serve the agent as a Telegram bot — see [Telegram](docs/telegram.md) |
 
 ## Documentation
 
 - [The agent loop](docs/loop.md) — turns, streaming events, steering, interrupts, and subagents
-- [Built-in tools](docs/builtin-tools.md) — local filesystem operations available to the agent
-- [Extensions](docs/extensions.md) — how to create and install extensions
+- [Built-in tools](docs/builtin.md) — local filesystem operations available to the agent
 - [MCP servers](docs/mcp.md) — how to connect to a local or remote MCP server
 - [Providers](docs/providers.md) — supported LLM backends, how to configure them, and how to write your own
 - [Configuration](docs/configuration.md) — the `config.toml`, `mcp.json`, and `AGENTS.md` files

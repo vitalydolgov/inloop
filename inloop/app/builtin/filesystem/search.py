@@ -4,7 +4,7 @@ import re
 
 from inloop.app.filesystem import FileSystem
 from inloop.domain.tool import Tool
-from inloop_kit.tool import tool
+from inloop.domain.tool import tool
 
 DESCRIPTION = (
     "Searches one local text file for a regular expression and returns matching lines with their "
