@@ -11,11 +11,15 @@ from aiohttp import web
 from inloop.app.builtin import filesystem
 from inloop.app.agent import Agent
 from inloop.app.server_tools import ServerTools
+from inloop.app import system_prompt
 from inloop.infra import app_dirs
+from inloop.infra.agents_file import AgentsFile
 from inloop.infra import mcp_json_config
 from inloop.infra import toml_config
 from inloop.infra.directory_registry import DirectoryExtensionRegistry
 from inloop.infra.local_filesystem import LocalFileSystem
+from inloop.infra.system_clock import SystemClock
+from inloop.infra.system_environment import SystemEnvironment
 from inloop.demo.telegram.client import TelegramClient
 from inloop.demo.telegram.server import create_app
 
@@ -31,6 +35,12 @@ async def amain():
     parser.add_argument(
         "--ngrok", action="store_true", help="expose the webhook through an ngrok tunnel"
     )
+    parser.add_argument(
+        "--instructions",
+        choices=["auto", "user"],
+        default="auto",
+        help="select automatic or user-wide agent instructions",
+    )
     args = parser.parse_args()
 
     config = toml_config.TomlConfig(app_dirs.config_path())
@@ -43,6 +53,10 @@ async def amain():
             subagent_model=config.subagent.model(),
             extensions=registry.load(),
             server_tools=mcp_tools,
+            system_prompt=system_prompt.compose(
+                SystemEnvironment(SystemClock()),
+                AgentsFile(app_dirs.agents_file_path(args.instructions)),
+            ),
             tools=[
                 filesystem.list.list_tool(local_filesystem),
                 filesystem.read.read_tool(local_filesystem),

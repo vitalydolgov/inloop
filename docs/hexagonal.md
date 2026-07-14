@@ -23,6 +23,10 @@ Port for managing and loading extensions. `DirectoryExtensionRegistry` (`infra/d
 
 Port for describing the environment supplied to the model. `SystemEnvironment` (`infra/system_environment.py`) assembles that description from host-level adapters, keeping the application independent of how those facts are obtained.
 
+### `Instructions` — `app/instructions.py`
+
+Port for instructions supplied to the agent's system prompt. `AgentsFile` (`infra/agents_file.py`) reads the selected `AGENTS.md` file.
+
 ### `Clock` — `app/clock.py`
 
 Port for reading the current date. `SystemClock` (`infra/system_clock.py`) obtains the date from the operating system.

@@ -21,9 +21,11 @@ from prompt_toolkit.styles import Style
 from inloop.app.builtin import filesystem
 from inloop.app.agent import Agent
 from inloop.app.server_tools import ServerTools
+from inloop.app import system_prompt
 from inloop.domain import streaming
 
 from inloop.infra import app_dirs
+from inloop.infra.agents_file import AgentsFile
 from inloop.infra import mcp_json_config
 from inloop.infra import providers
 from inloop.infra import toml_config
@@ -220,6 +222,12 @@ async def amain():
     parser.add_argument(
         "--no-banner", action="store_true", help="suppress the startup banner"
     )
+    parser.add_argument(
+        "--instructions",
+        choices=["auto", "user"],
+        default="auto",
+        help="select automatic or user-wide agent instructions",
+    )
     args = parser.parse_args()
 
     config = toml_config.TomlConfig(app_dirs.config_path())
@@ -244,7 +252,10 @@ async def amain():
             subagent_model=subagent_model,
             extensions=registry.load(),
             server_tools=mcp_tools,
-            system_prompt=SystemEnvironment(SystemClock()).describe(),
+            system_prompt=system_prompt.compose(
+                SystemEnvironment(SystemClock()),
+                AgentsFile(app_dirs.agents_file_path(args.instructions)),
+            ),
             tools=[
                 filesystem.list.list_tool(local_filesystem),
                 filesystem.read.read_tool(local_filesystem),

@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import AsyncIterator
 
 from inloop.app import agent
+from inloop.app import system_prompt
 from inloop.app import compaction
 from inloop.domain import extension
 from inloop.domain import message
@@ -120,6 +121,20 @@ def test_without_system_prompt_sends_empty() -> None:
     asyncio.run(gather())
 
     assert model.systems == [""]
+
+
+def test_system_prompt_combines_environment_and_instructions() -> None:
+    class _Environment:
+        def describe(self) -> str:
+            return "Today's date is 2026-07-06."
+
+    class _Instructions:
+        def load(self) -> str:
+            return "Always use metric units."
+
+    prompt = system_prompt.compose(_Environment(), _Instructions())
+
+    assert prompt == "Today's date is 2026-07-06.\n\nAlways use metric units."
 
 
 def test_offers_its_tools_to_the_model() -> None:

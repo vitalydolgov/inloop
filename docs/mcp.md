@@ -8,7 +8,7 @@ Authentication is not handled yet — configure servers that need no credentials
 
 `ToolServer` defines the interface: list tools and call them. `make_tools` (`app/tool_server.py`) turns any `ToolServer` into namespaced tools (`<server>__<tool>`). `McpToolServer` implements that interface for MCP servers over stdio or HTTP.
 
-Servers are declared in a dedicated `mcp.json` file using the conventional MCP client format: a top-level `mcpServers` object, each key the name the server mounts under. Prefer a project-local `mcp.json`, or place one at `~/.inloop/mcp.json` to apply it to every run. Use either HTTP or stdio — not both in the same entry:
+Servers are declared in `~/.inloop/mcp.json` using the conventional MCP client format: a top-level `mcpServers` object, each key the name the server mounts under. Use either HTTP or stdio — not both in the same entry:
 
 | Option | Transport | What it is |
 | --- | --- | --- |

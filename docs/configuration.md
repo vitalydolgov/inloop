@@ -1,22 +1,24 @@
 # Configuration
 
-Configuration is split across two independent files:
+Configuration is split across three independent files:
 
 - `config.toml` contains the agent model, the optional subagent model, and Telegram settings.
 - `mcp.json` contains the [MCP](https://modelcontextprotocol.io) servers whose tools are available to the agent.
+- `AGENTS.md` contains instructions added to the agent's context.
 
-Both files are optional. If `config.toml` is absent, its settings use their defaults; if `mcp.json` is absent, no MCP servers are loaded.
+All files are optional. If `config.toml` is absent, its settings use their defaults; if `mcp.json` is absent, no MCP servers are loaded; if `AGENTS.md` is absent, the agent receives no additional instructions.
 
 ## File locations
 
-The application looks up each file independently:
+The agent and MCP configuration always come from the user-wide directory. Agent instructions can also come from the working directory:
 
-| File | Project-specific | User-wide |
-| --- | --- | --- |
-| Agent, subagent, and Telegram settings | `./config.toml` | `~/.inloop/config.toml` |
-| MCP servers | `./mcp.json` | `~/.inloop/mcp.json` |
+| File | Location |
+| --- | --- |
+| Agent, subagent, and Telegram settings | `~/.inloop/config.toml` |
+| MCP servers | `~/.inloop/mcp.json` |
+| Agent instructions | `./AGENTS.md` or `~/.inloop/AGENTS.md` |
 
-A project-specific file takes precedence over the user-wide file with the same name. The files are not merged: a local `config.toml` does not affect which `mcp.json` is selected, and vice versa. Set `INLOOP_HOME` to use a different directory instead of `~/.inloop` for user-wide settings.
+Set `INLOOP_HOME` to use a different directory instead of `~/.inloop` for user-wide settings.
 
 ## `config.toml`
 
@@ -56,3 +58,11 @@ Example:
   }
 }
 ```
+
+## `AGENTS.md`
+
+`AGENTS.md` is a Markdown file containing the instructions that guide the agent for a project or across all projects. Its contents are added to the system prompt when the agent starts, after the runtime facts such as the current date. The same prompt is passed to spawned subagents.
+
+`--instructions=auto` is the default: the runtime uses `./AGENTS.md` when it exists and otherwise uses `~/.inloop/AGENTS.md`. Use `--instructions=user` to skip the working directory file.
+
+The file is read once at startup. Restart the agent after changing it.
